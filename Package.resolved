@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "MatrixKit",
+        "repositoryURL": "https://github.com/SylvanM/MatrixKit.git",
+        "state": {
+          "branch": null,
+          "revision": "726dbb277817d1ec6589d1815b25420c83ba390e",
+          "version": "0.1.4"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
