@@ -9,31 +9,67 @@ import Foundation
 import Accelerate
 import MatrixKit
 
+/**
+ * A graph of layers of nodes containing an activation, where the activation is based off of the activations of the previous layer, with
+ * certain nodes having more of an effect than others.
+ *
+ * This is an unsafe data type. What I mean by that is I am not practicing the usual industry standard of encapsulation. I am delibrerately
+ * exposing some parts of implementation and allowing the weights and biases to be directly modified. It is my philosophy
+ * that in uses like these, more control to the user is better.
+ */
 public class NeuralNetwork {
     
     // MARK: Properties
     
     /**
-     * - Invariant: Something about how the weights and biases have to actually work together to
-     * form a legit neural network
-     */
-    
-    /**
      * The weight matrices for each layer of the neural network
      *
-     * - Invariant: All these matrices can be multiplied together! (that's informal sorry)
+     * - Invariant: For all `i` in `0..<(weights.count - 1)`, `weights[i + 1].colCount == weights[i].rowCount`. In other words,
+     * these matrices can be successively left-multiplied.
      */
-    var weights: [Matrix] // TODO: Formalize this documentation
+    public var weights: [Matrix]
     
     /**
-     * Bias vectors for each layer of the neural network, minus the first layer.
+     * Bias vectors for each layer of the neural network, excluding the first layer.
+     *
+     * - Invariant: `biases.count == weights.count`
+     * - Invariant: For all `i` in `0..<biases.count`, `biases[i].colCount == 1`
+     * and `biases[i].rowCount == weights[i].rowCount`
      */
-    var biases: [Matrix]
+    public var biases: [Matrix]
     
     /**
-     * The activation function for the neural network
+     * This checks that all representation invariants holds.
+     *
+     * It is an industry standard that properties like this are private, and the client can't even alter the other properties that may violate it at all.
+     * However, because I intend for this library to be as versatile as possible, I am delibrately choosing to give the dangerous power of full access
+     * to the client. So, I've made this property public as well, so that the client can verify it if they so choose.
      */
-    var activationFunction: ActivationFunction
+    public var invariantSatisied: Bool {
+        for i in 0..<(weights.count - 1) {
+            if weights[i + 1].colCount != weights[i].rowCount {
+                return false
+            }
+        }
+        
+        for i in 0..<biases.count {
+            if biases[i].colCount != 1 {
+                return false
+            }
+            if biases[i].rowCount != weights[i].rowCount {
+                return false
+            }
+        }
+        
+        return true
+    }
+    
+    /**
+     * The activation function for the neural network.
+     *
+     * This function is the final step in the computation of the activations for a layer, after the weights and biases have been applied.
+     */
+    public var activationFunction: ActivationFunction
     
     // MARK: Initializers
     
@@ -44,21 +80,125 @@ public class NeuralNetwork {
      *
      * - Parameter weights: The weights for the neural network
      * - Parameter biases: The biases for each activation layer other than the input layer.
+     * - Parameter activationFunction: The activation function for this neural network.
      */
-    init(weights: [Matrix], biases: [Matrix], activationFunction: ActivationFunction) {
+    public init(weights: [Matrix], biases: [Matrix], activationFunction: ActivationFunction) {
         self.weights = weights
         self.biases = biases
         self.activationFunction = activationFunction
     }
     
+    /**
+     * Creates an empty neural network of a specific shape
+     *
+     * - Parameter shape: An array describing the size of each layer. If `shape` is `[2, 2, 1]`, a neural network will be created with
+     * 2 input nodes, one hidden layer with 2 nodes, and an output layer with 1 node.
+     * - Parameter activationFunction: The activation function for each node in the network
+     */
+    public init(shape: [Int], activationFunction: ActivationFunction = .identity) {
+        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        
+        for i in 0..<(shape.count - 1) {
+            weights[i] = Matrix(rows: shape[i + 1], cols: shape[i])
+            biases[i] = Matrix(rows: shape[i], cols: 1)
+        }
+        
+        self.activationFunction = activationFunction
+    }
+    
+    /**
+     * Creates a neural network with random weights and biases, with a certain network dimension.
+     *
+     * - Parameter shape: See the documentation for `init(shape: [Int])`
+     * - Parameter activationFunction: The activation function for the random network
+     * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
+     * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
+     */
+    public init(randomWithShape shape: [Int], activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
+        
+        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        
+        for i in 0..<(shape.count - 1) {
+            weights[i] = Matrix.random(rows: shape[i + 1], cols: shape[i], range: weightRange)
+            biases[i] = Matrix.random(rows: shape[i], cols: 1, range: biasRange)
+        }
+        
+        self.activationFunction = activationFunction
+    }
+    
+    /**
+     * Decodes raw `NeuralNetwork` data from a buffer.
+     *
+     * - Parameter buffer: The buffer of data to decode
+     */
+    init(buffer: UnsafeRawBufferPointer) {
+        var readAddress = buffer.baseAddress!
+        let layerCount = NeuralNetwork.readInteger(from: &readAddress)
+        
+        self.activationFunction = ActivationFunction(
+            identifier: ActivationFunction.Identifier(
+                rawValue: NeuralNetwork.readInteger(from: &readAddress)
+            )!
+        )
+        
+        self.weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        self.biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        
+        for i in 0..<weights.count {
+            weights[i] = Matrix.unsafeRead(from: &readAddress)
+        }
+        
+        for i in 0..<biases.count {
+            biases[i] = Matrix.unsafeRead(from: &readAddress)
+        }
+        
+    }
+    
+    /**
+     * Decodes an encoded `NeuralNetwork` from a `Data` object
+     *
+     * - Parameter data: The encoded neural network to decode
+     */
+    public convenience init(data: Data) {
+        let buffer = data.withUnsafeBytes { $0 }
+        self.init(buffer: buffer)
+    }
+    
+    // MARK: Computed Properties
+    
+    /**
+     * This neural network encoded as a `Data` object
+     */
+    public var encodedData: Data {
+        encodeAsData()
+    }
+    
     // MARK: Methods
     
     /**
+     * Encodes this `NeuralNetwork` as a `Data` object
+     */
+    fileprivate func encodeAsData() -> Data {
+        let buffer = write()
+        return Data(bytes: buffer.baseAddress!, count: buffer.count)
+    }
+    
+    /**
      * Computes the output layer for a given input layer
+     *
+     * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
+     *
+     * - Parameter input: A vector representing the activations for the input layer of this matrix
+     *
+     * - Returns: The vector representing the activations of the output layer after the network feeds forward the input layer.
      */
     public func computeOutputLayer(forInput input: Matrix) -> Matrix {
         compute(layer: weights.count, forInput: input)
     }
+    
+    // MARK: Internal Helpers
     
     internal func compute(layer: Int, forInput input: Matrix) -> Matrix {
         var currentLayer = input

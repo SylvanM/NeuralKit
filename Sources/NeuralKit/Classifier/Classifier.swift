@@ -30,9 +30,12 @@ public class Classifier<T> {
     // MARK: Initializers
     
     /**
-     * Creates a classifier from a neural network and classification method
+     * Creates a classifier from a neural network and classification method.
+     *
+     * - Parameter network: The neural network to use for classification
+     * - Parameter classify: A closure used to interpret the output of the neural network and convert it to a `T`
      */
-    init(fromNetwork network: NeuralNetwork, withClassificationMethod classify: @escaping (Matrix) -> T) {
+    public init(fromNetwork network: NeuralNetwork, withClassificationMethod classify: @escaping (Matrix) -> T) {
         self.network = network
         self.interpret = classify
     }
@@ -40,7 +43,11 @@ public class Classifier<T> {
     // MARK: Methods
     
     /**
-     * Classifies an input layer
+     * Classifies an input
+     *
+     * - Parameter input: Input data to classify
+     *
+     * - Returns: This classifiers best classification attempt
      */
     public func classify(_ input: [Double]) -> T {
         classify(Matrix(vector: input))
@@ -48,6 +55,10 @@ public class Classifier<T> {
     
     /**
      * Classifies an input vector
+     *
+     * - Parameter input: An input vector to classify
+     *
+     * - Returns: This classifiers best classification attempt
      */
     public func classify(_ vector: Matrix) -> T {
         interpret(network.computeOutputLayer(forInput: vector))
