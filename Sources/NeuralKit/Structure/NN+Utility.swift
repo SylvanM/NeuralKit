@@ -10,6 +10,15 @@ import MatrixKit
 
 public extension NeuralNetwork {
     
+    // MARK: Shape
+    
+    /**
+     * Reports the shape of this neural network
+     */
+    var shape: Shape {
+        [weights[0].colCount] + biases.map { $0.count }
+    }
+    
     // MARK: Encoding and Decoding
     
     /**

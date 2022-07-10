@@ -2,9 +2,12 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import AppKit
+
 
 let package = Package(
     name: "NeuralKit",
+    platforms: [.macOS(.v11), .iOS(.v15)],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -27,3 +30,5 @@ let package = Package(
             dependencies: ["NeuralKit"]),
     ]
 )
+
+

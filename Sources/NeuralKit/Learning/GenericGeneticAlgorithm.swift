@@ -6,16 +6,25 @@
 //
 
 import Foundation
+import MatrixKit
 
 /**
- * A trainer that trains a neural network genetically, by breeding it with others
+ * A generic genetic algorithm that evolves a species `S`.
+ *
+ * This class is **not** specific to training `NeuralNetwork`s but is designed so that it can be used for that.
  */
-public class GeneticTrainer<S> {
+public class GenericGeneticAlgorithm<S> {
     
+    /**
+     * The type used to remember the score for a particular species without scoring a copy or reference to the species itself.
+     */
+    public typealias ScoreRecord = (index: Int, score: Double)
+
     /**
      * Performs genetic evolution on a population of `S`
      *
      * - Parameter organisms: The population of organisms to evolve.
+     * - Parameter scores: The scores for each species, updated after each genetation.
      * - Parameter fitness: The percentage of the population which is replaced with offspring after each generation
      * - Parameter generations: The amount of generations to evolve through. If set to 0, no evolution will be performed.
      * - Parameter score: A closure that computes the score of a single `S`.
@@ -23,13 +32,12 @@ public class GeneticTrainer<S> {
      *
      * - Precondition: `organisms.count >= 2`
      * - Precondition: `0 < fitness < 1`
+     * - Precondition: `scores.count == organisms.count`
      */
-    static public func evolve(organisms: inout [S], fitness: Double, generations: Int, score: (S) -> Double, breed: (S, S) -> S, uponGenerationCompletion genFinished: (() -> ())? = nil) {
+    static public func evolve(organisms: inout [S], scores: inout [ScoreRecord], fitness: Double, generations: Int, score: (S) -> Double, breed: (S, S) -> S, uponGenerationCompletion genFinished: (() -> ())? = nil) {
         if generations == 0 { return }
         
         // keep track of which creature scores what, so that we can deal with them accordingly later (sounds menacing)
-        typealias ScoreRecord = (index: Int, score: Double)
-        var scores = [ScoreRecord](repeating: (index: 0, score: 0), count: organisms.count)
         
         for i in 0..<scores.count {
             scores[i].index = i
@@ -60,7 +68,6 @@ public class GeneticTrainer<S> {
         }
         
         genFinished?()
-        evolve(organisms: &organisms, fitness: fitness, generations: generations - 1, score: score, breed: breed, uponGenerationCompletion: genFinished)
+        evolve(organisms: &organisms, scores: &scores, fitness: fitness, generations: generations - 1, score: score, breed: breed, uponGenerationCompletion: genFinished)
     }
-    
 }

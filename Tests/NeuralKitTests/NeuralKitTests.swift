@@ -12,6 +12,8 @@ final class NeuralKitTests: XCTestCase {
         let actfunc = ActivationFunction.hyperTan
         let net = NeuralNetwork.init(randomWithShape: Array(shape), activationFunction: actfunc)
         
+        XCTAssertEqual(net.shape, shape)
+        
         let encodedNet = net.encodedData
         
         // make sure the activation function is encoded right
@@ -29,22 +31,22 @@ final class NeuralKitTests: XCTestCase {
         // now try with a bunch of random ones
         
         // this takes really really long, let's not run it unless we are explicitly testing it...
-        for _ in 1...100 {
-            var randomShape = [Int](repeating: 0, count: Int.random(in: 2...100))
-
-            for i in 0..<randomShape.count {
-                randomShape[i] = Int.random(in: 1...1000)
-            }
-
-            let net = NeuralNetwork(randomWithShape: randomShape, activationFunction: .hyperTan)
-
-            let encodedNet = net.encodedData
-            let decodedNet = NeuralNetwork(data: encodedNet)
-
-            XCTAssertEqual(net.weights, decodedNet.weights)
-            XCTAssertEqual(net.biases, decodedNet.biases)
-            XCTAssertEqual(net.activationFunction, decodedNet.activationFunction)
-        }
+//        for _ in 1...100 {
+//            var randomShape = [Int](repeating: 0, count: Int.random(in: 2...100))
+//
+//            for i in 0..<randomShape.count {
+//                randomShape[i] = Int.random(in: 1...1000)
+//            }
+//
+//            let net = NeuralNetwork(randomWithShape: randomShape, activationFunction: .hyperTan)
+//
+//            let encodedNet = net.encodedData
+//            let decodedNet = NeuralNetwork(data: encodedNet)
+//
+//            XCTAssertEqual(net.weights, decodedNet.weights)
+//            XCTAssertEqual(net.biases, decodedNet.biases)
+//            XCTAssertEqual(net.activationFunction, decodedNet.activationFunction)
+//        }
         
     }
     

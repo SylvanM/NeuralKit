@@ -19,6 +19,8 @@ import MatrixKit
  */
 public class NeuralNetwork {
     
+    public typealias Shape = [Int]
+    
     // MARK: Properties
     
     /**
@@ -95,7 +97,7 @@ public class NeuralNetwork {
      * 2 input nodes, one hidden layer with 2 nodes, and an output layer with 1 node.
      * - Parameter activationFunction: The activation function for each node in the network
      */
-    public init(shape: [Int], activationFunction: ActivationFunction = .identity) {
+    public init(shape: Shape, activationFunction: ActivationFunction = .identity) {
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
@@ -115,7 +117,7 @@ public class NeuralNetwork {
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: [Int], activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
+    public init(randomWithShape shape: Shape, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
         
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
@@ -154,6 +156,17 @@ public class NeuralNetwork {
             biases[i] = Matrix.unsafeRead(from: &readAddress)
         }
         
+    }
+    
+    /**
+     * Creates a copy of another neural network
+     *
+     * - Parameter other: Another neural network to copy
+     */
+    public init(_ other: NeuralNetwork) {
+        self.weights = other.weights
+        self.biases = other.biases
+        self.activationFunction = other.activationFunction
     }
     
     /**
@@ -196,6 +209,17 @@ public class NeuralNetwork {
      */
     public func computeOutputLayer(forInput input: Matrix) -> Matrix {
         compute(layer: weights.count, forInput: input)
+    }
+    
+    /**
+     * Computes the loss for a particular training example
+     *
+     * - Parameter example: A `DataSet.Item` to compute the loss for
+     *
+     * - Returns: The sum of the squares of the differences between the expected and computed output activations
+     */
+    public func cost(for example: DataSet.Item) -> Double {
+        computeOutputLayer(forInput: example.input).distanceSquared(from: example.output)
     }
     
     // MARK: Internal Helpers
