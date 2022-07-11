@@ -167,7 +167,7 @@ public class DataSet {
         
         let caseSize = try! DataSet.readCaseSize(from: fileHandle)
         
-        for i in 0..<caseAmount {
+        for _ in 0..<caseAmount {
             let data = try! fileHandle.read(upToCount: caseSize)!
             data.withUnsafeBytes { buffer in
                 let item = Item(unsafeBuffer: buffer)
@@ -210,6 +210,81 @@ public class DataSet {
         }
         
         return average
+    }
+    
+}
+
+extension DataSet.Item {
+    
+    // MARK: Initializers
+    
+    /**
+     * Creates a `DataSet.Item` from a buffer of encoded data
+     *
+     * - Precondition: `buffer` points to a properly encoded sequence of bytes of the same format created by `toBuffer()` or `unsafeWrite(to:)`
+     *
+     * - Parameter buffer: A pointer to the buffer of encoded data
+     */
+    public init(unsafeBuffer: UnsafeRawBufferPointer) {
+        var baseAddress = unsafeBuffer.baseAddress!
+        self.init(fromUnsafeBaseAddress: &baseAddress)
+    }
+    
+    /**
+     * Creates a training example from the base address of a buffer of data that encodes this training item, and updates the base address to point to the next
+     * byte after this buffer
+     *
+     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that encodes a training item, which
+     * will be incremented.
+     */
+    public init(fromUnsafeBaseAddress baseAddress: inout UnsafeRawPointer) {
+        input = Matrix.unsafeRead(from: &baseAddress)
+        output = Matrix.unsafeRead(from: &baseAddress)
+    }
+    
+    // MARK: Encoding/Decoding
+    
+    /**
+     * Writes the underlying data of this training example to a buffer and returns a pointer to the buffer
+     *
+     * - Returns: A buffer pointer to the underlying data to this training item
+     */
+    public func toBuffer() -> UnsafeRawBufferPointer {
+        let inputBuffer = input.encodedDataBuffer
+        let outputBuffer = output.encodedDataBuffer
+        
+        let finalBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: inputBuffer.count + outputBuffer.count, alignment: 1)
+        inputBuffer.copyBytes(to: finalBuffer)
+        
+        let outputStartAddress = finalBuffer.baseAddress!.advanced(by: inputBuffer.count)
+        let outputWriteBuffer = UnsafeMutableRawBufferPointer(start: outputStartAddress, count: outputBuffer.count)
+        
+        outputBuffer.copyBytes(to: outputWriteBuffer)
+        
+        return UnsafeRawBufferPointer(finalBuffer)
+    }
+    
+    /**
+     * Decodes a training example from the base address of a buffer of data that encodes this training item, and updates the base address to point to the next
+     * byte after this buffer
+     *
+     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that encodes a training item, which
+     * will be incremented.
+     */
+    static func unsafeRead(from baseAddress: inout UnsafeRawPointer) -> DataSet.Item {
+        DataSet.Item(fromUnsafeBaseAddress: &baseAddress)
+    }
+    
+    /**
+     * Encodes a training example to the base address of a buffer of data that will store this training item, and updates the base address to point to the next
+     * byte after this buffer
+     *
+     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that will store a training item, which
+     * will be incremented.
+     */
+    func unsafeWrite(to baseAddress: inout UnsafeMutableRawPointer) {
+        input.unsafeWrite(to: &baseAddress)
+        output.unsafeWrite(to: &baseAddress)
     }
     
 }

@@ -117,7 +117,7 @@ class GeneticXOR: XCTestCase {
         print("Improvement: \(finalScore - initialScore)")
         
         let sampleSize = 10
-        var sampleIndices = scores[0..<10].map { $0.index }
+        let sampleIndices = scores[0..<10].map { $0.index }
         
         
         print("Showcasing the top sample of \(sampleSize) talented survivors:")
