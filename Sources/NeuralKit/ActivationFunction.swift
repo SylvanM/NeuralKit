@@ -52,6 +52,15 @@ public struct ActivationFunction: Equatable {
         x = compute(x)
     }
     
+    /**
+     * Applies this activation function's derivative, in place
+     *
+     * - Parameter x: The value to apply this activation function to
+     */
+    public func applyDerivative(to x: inout Double) {
+        x = derivative(x)
+    }
+    
     // MARK: Enumerations
     
     /**

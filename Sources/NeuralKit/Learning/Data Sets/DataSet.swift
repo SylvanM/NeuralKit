@@ -175,7 +175,7 @@ public class DataSet {
         let caseAmount = try DataSet.readCount(from: fileHandle)
         let caseSize = try DataSet.readCaseSize(from: fileHandle)
         
-        for i in 0..<caseAmount {
+        for _ in 0..<caseAmount {
             let data = try fileHandle.read(upToCount: caseSize)!
             data.withUnsafeBytes { buffer in
                 let item = Item(unsafeBuffer: buffer)

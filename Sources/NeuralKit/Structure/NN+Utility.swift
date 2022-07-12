@@ -30,7 +30,7 @@ public extension NeuralNetwork {
         
         // first, write the weights and biases to buffers
         
-        let matrices = weights + (biases ?? [])
+        let matrices = weights + biases
         let matrixBuffers = matrices.map { $0.encodedDataBuffer }
         
         // size of necessary buffer, in bytes
