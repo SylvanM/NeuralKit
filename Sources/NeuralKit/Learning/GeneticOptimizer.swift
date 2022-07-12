@@ -65,7 +65,7 @@ public class GeneticOptimizer {
     /**
      * Creates a neural network that has been optimized, through genetic evolution, to correctly match the data set.
      */
-    public func findOptimalNetwork(populationSize: Int, eliminatingPortion: Double, iterations: Int, breed: Algorithm.BreedingFunction = .arithmeticMean(), initialWeightRange: ClosedRange<Double> = -10...10, initialBiasRange: ClosedRange<Double> = -10...10) -> NeuralNetwork {
+    public func findOptimalNetwork(populationSize: Int, eliminatingPortion: Double, iterations: Int, breed: Algorithm.BreedingFunction = .arithmeticMean(), initialWeightRange: ClosedRange<Double> = -10...10, initialBiasRange: ClosedRange<Double> = -10...10, uponGenerationCompletion: (([NeuralNetwork]) -> ())? = nil) -> NeuralNetwork {
         
         var population = [NeuralNetwork](repeating: NeuralNetwork(shape: shape), count: populationSize)
         var scores = [Algorithm.ScoreRecord](repeating: (index: 0, score: 0), count: populationSize)
@@ -82,7 +82,9 @@ public class GeneticOptimizer {
             population[i].activationFunction = activationFunction
         }
         
-        Algorithm.evolve(organisms: &population, scores: &scores, fitness: eliminatingPortion, generations: iterations, score: score, breed: breed.breed)
+        Algorithm.evolve(organisms: &population, scores: &scores, fitness: eliminatingPortion, generations: iterations, score: score, breed: breed.breed) {
+            uponGenerationCompletion?(population)
+        }
 
         return population[scores.last!.index]
     }
@@ -126,6 +128,7 @@ public extension GenericGeneticAlgorithm where S == NeuralNetwork {
             for i in 0..<child.weights.count {
                 child.weights[i] = 0.5 * (mother.weights[i] + father.weights[i])
                 child.biases[i] = 0.5 * (mother.biases[i] + father.biases[i])
+                
             }
             
             return child

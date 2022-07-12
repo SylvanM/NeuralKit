@@ -34,6 +34,8 @@ public class NeuralNetwork {
     /**
      * Bias vectors for each layer of the neural network, excluding the first layer.
      *
+     * If this is null, the network's computation is only based on the weights.
+     *
      * - Invariant: `biases.count == weights.count`
      * - Invariant: For all `i` in `0..<biases.count`, `biases[i].colCount == 1`
      * and `biases[i].rowCount == weights[i].rowCount`
@@ -113,14 +115,16 @@ public class NeuralNetwork {
      * Creates a neural network with random weights and biases, with a certain network dimension.
      *
      * - Parameter shape: See the documentation for `init(shape: [Int])`
+     * - Parameter shouldIncludeBiases: If `false`, this network will only compute with weights.
      * - Parameter activationFunction: The activation function for the random network
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
+    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
         
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        
         
         for i in 0..<(shape.count - 1) {
             weights[i] = Matrix.random(rows: shape[i + 1], cols: shape[i], range: weightRange)
