@@ -45,12 +45,6 @@ class DataSetTests: XCTestCase {
         }
     }
     
-    // MARK: IDX Conversion
-    
-    func testIDXConversion() throws {
-        
-    }
-    
     // MARK: Reading Known Data Sets
     
     func testReadingKnownData() throws {
@@ -76,5 +70,7 @@ class DataSetTests: XCTestCase {
         
         XCTAssertEqual(count, 4)
     }
+    
+    // MARK: 
 
 }
