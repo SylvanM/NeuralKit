@@ -45,10 +45,36 @@ class DataSetTests: XCTestCase {
         }
     }
     
+    // MARK: IDX Conversion
+    
+    func testIDXConversion() throws {
+        
+    }
+    
     // MARK: Reading Known Data Sets
     
     func testReadingKnownData() throws {
         let xorDataSet = try DataSet(name: xorInfo.name, inDirectory: xorInfo.url)
+        
+        var count = 0
+        xorDataSet.iterateTestingData { item in
+            let (a, b) = (Int(item.input[0][0]), Int(item.input[1][0]))
+            let saved = Int(item.output[0][0])
+            XCTAssertEqual(a ^ b, saved)
+            count += 1
+        }
+        
+        XCTAssertEqual(count, 4)
+        
+        count = 0
+        xorDataSet.iterateTrainingData { item in
+            let (a, b) = (Int(item.input[0][0]), Int(item.input[1][0]))
+            let saved = Int(item.output[0][0])
+            XCTAssertEqual(a ^ b, saved)
+            count += 1
+        }
+        
+        XCTAssertEqual(count, 4)
     }
 
 }

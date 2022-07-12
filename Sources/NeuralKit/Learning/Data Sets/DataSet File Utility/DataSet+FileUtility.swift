@@ -11,18 +11,6 @@ import MatrixKit
 
 extension DataSet {
     
-    // MARK: File Utility
-    
-    /**
-     * Converts an IDX formatted file into an NKDS file.
-     *
-     * - Parameter idxFile: The filepath to the IDX file to convert
-     * - Parameter nkdsFileDes: The destination to write the conversion to
-     */
-    public static func convert(idkFile: URL, writingTo nkdsFileDes: URL) {
-        
-    }
-    
     // MARK: Reading and Writing
     
     /**
@@ -43,17 +31,9 @@ extension DataSet {
             handle = try FileHandle(forWritingTo: url)
         }
         
-        
-        // prepend the files with the number of training items in each one
-        let countBuffer = UnsafeMutableBufferPointer<Int>.allocate(capacity: 1)
-        
-        countBuffer.baseAddress!.pointee = items.count
-        
-        try handle.write(contentsOf: UnsafeRawBufferPointer(countBuffer))
-        
-        // now write the size
         let caseSize = items[0].toBuffer().count
-        try writeInt(caseSize, to: handle)
+        
+        try write(count: items.count, size: caseSize, toHandle: handle)
         
         // write each item to the file!
         for item in items {
@@ -61,6 +41,20 @@ extension DataSet {
         }
         
         try handle.close()
+    }
+    
+    /**
+     * Writes the number of examples and the size (in bytes) of each example to a file handle, advancing the handle.
+     *
+     * - Parameter count: The example amount to write to the file as a header
+     * - Parameter size: The size, in bytes, of each training example to eventually be written, to be put at the beginning of the file.
+     * - Parameter handle: The `FileHandle` pointing to the output file, advanced after being written to.
+     *
+     * - Precondition: `FileHandle` points to the beginning of an open file.
+     */
+    public static func write(count: Int, size: Int, toHandle handle: FileHandle) throws {
+        try writeInt(count, to: handle)
+        try writeInt(size,  to: handle)
     }
     
     private static func writeInt(_ value: Int, to handle: FileHandle) throws {
@@ -103,9 +97,43 @@ extension DataSet {
         try readInt(from: handle)
     }
     
+    // MARK: Enumerations
+    
+    /**
+     * An error that can occur when reading data set files
+     */
+    public enum DSFileError: Error {
+        
+        /**
+         * Thrown when the file trying to be read is not a valid NKDS file
+         */
+        case notNKDSFile
+        
+        /**
+         * Thrown when expecting to read an IDX file but the file format ain't cooperating
+         */
+        case cannotReadIDXFileData
+        
+        /**
+         * Thrown when reading an IDX file and cannot represent the encoded data in a `Matrix` object
+         */
+        case cannotRepresentAsMatrix
+        
+        /**
+         * Thrown when the directory in question does not contain the expected training and testing file, along with
+         * another possible error that was thrown during the file reading process.
+         */
+        case malformedTrainingDirectory(fileError: Error?)
+        
+    }
+    
 }
 
-extension DataSet.Item {
+extension DataSet.Item: CustomStringConvertible {
+    
+    public var description: String {
+        "Input:\n\(input)\nOutput:\n\(output)"
+    }
     
     // MARK: Initializers
     
@@ -116,7 +144,7 @@ extension DataSet.Item {
      *
      * - Parameter buffer: A pointer to the buffer of encoded data
      */
-    public init(unsafeBuffer: UnsafeRawBufferPointer) {
+    public convenience init(unsafeBuffer: UnsafeRawBufferPointer) {
         var baseAddress = unsafeBuffer.baseAddress!
         self.init(fromUnsafeBaseAddress: &baseAddress)
     }
@@ -128,9 +156,10 @@ extension DataSet.Item {
      * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that encodes a training item, which
      * will be incremented.
      */
-    public init(fromUnsafeBaseAddress baseAddress: inout UnsafeRawPointer) {
-        input = Matrix.unsafeRead(from: &baseAddress)
-        output = Matrix.unsafeRead(from: &baseAddress)
+    public convenience init(fromUnsafeBaseAddress baseAddress: inout UnsafeRawPointer) {
+        let input = Matrix.unsafeRead(from: &baseAddress)
+        let output = Matrix.unsafeRead(from: &baseAddress)
+        self.init(input: input, output: output)
     }
     
     // MARK: Encoding/Decoding
@@ -177,5 +206,7 @@ extension DataSet.Item {
         input.unsafeWrite(to: &baseAddress)
         output.unsafeWrite(to: &baseAddress)
     }
+    
+    
     
 }

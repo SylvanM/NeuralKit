@@ -73,7 +73,7 @@ public class DataSet {
     /**
      * A single training item
      */
-    public struct Item {
+    public class Item {
         
         /**
          * The input vector
@@ -127,12 +127,19 @@ public class DataSet {
         self.trainingItemsCount = 0
         self.testingItemsCount = 0
         
-        let trainingHandle = try FileHandle(forReadingFrom: trainingFileURL)
-        let testingHandle = try FileHandle(forReadingFrom: testingFileURL)
+        do {
+            
+            let trainingHandle = try FileHandle(forReadingFrom: trainingFileURL)
+            let testingHandle = try FileHandle(forReadingFrom: testingFileURL)
+            
+            // read the counts in each file
+            self.trainingItemsCount = try DataSet.readCount(from: trainingHandle)
+            self.testingItemsCount = try DataSet.readCount(from: testingHandle)
+            
+        } catch {
+            throw DSFileError.malformedTrainingDirectory(fileError: error)
+        }
         
-        // read the counts in each file
-        self.trainingItemsCount = try DataSet.readCount(from: trainingHandle)
-        self.testingItemsCount = try DataSet.readCount(from: testingHandle)
     }
     
     // MARK: Data Iteration
@@ -210,81 +217,6 @@ public class DataSet {
         }
         
         return average
-    }
-    
-}
-
-extension DataSet.Item {
-    
-    // MARK: Initializers
-    
-    /**
-     * Creates a `DataSet.Item` from a buffer of encoded data
-     *
-     * - Precondition: `buffer` points to a properly encoded sequence of bytes of the same format created by `toBuffer()` or `unsafeWrite(to:)`
-     *
-     * - Parameter buffer: A pointer to the buffer of encoded data
-     */
-    public init(unsafeBuffer: UnsafeRawBufferPointer) {
-        var baseAddress = unsafeBuffer.baseAddress!
-        self.init(fromUnsafeBaseAddress: &baseAddress)
-    }
-    
-    /**
-     * Creates a training example from the base address of a buffer of data that encodes this training item, and updates the base address to point to the next
-     * byte after this buffer
-     *
-     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that encodes a training item, which
-     * will be incremented.
-     */
-    public init(fromUnsafeBaseAddress baseAddress: inout UnsafeRawPointer) {
-        input = Matrix.unsafeRead(from: &baseAddress)
-        output = Matrix.unsafeRead(from: &baseAddress)
-    }
-    
-    // MARK: Encoding/Decoding
-    
-    /**
-     * Writes the underlying data of this training example to a buffer and returns a pointer to the buffer
-     *
-     * - Returns: A buffer pointer to the underlying data to this training item
-     */
-    public func toBuffer() -> UnsafeRawBufferPointer {
-        let inputBuffer = input.encodedDataBuffer
-        let outputBuffer = output.encodedDataBuffer
-        
-        let finalBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: inputBuffer.count + outputBuffer.count, alignment: 1)
-        inputBuffer.copyBytes(to: finalBuffer)
-        
-        let outputStartAddress = finalBuffer.baseAddress!.advanced(by: inputBuffer.count)
-        let outputWriteBuffer = UnsafeMutableRawBufferPointer(start: outputStartAddress, count: outputBuffer.count)
-        
-        outputBuffer.copyBytes(to: outputWriteBuffer)
-        
-        return UnsafeRawBufferPointer(finalBuffer)
-    }
-    
-    /**
-     * Decodes a training example from the base address of a buffer of data that encodes this training item, and updates the base address to point to the next
-     * byte after this buffer
-     *
-     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that encodes a training item, which
-     * will be incremented.
-     */
-    static func unsafeRead(from baseAddress: inout UnsafeRawPointer) -> DataSet.Item {
-        DataSet.Item(fromUnsafeBaseAddress: &baseAddress)
-    }
-    
-    /**
-     * Encodes a training example to the base address of a buffer of data that will store this training item, and updates the base address to point to the next
-     * byte after this buffer
-     *
-     * - Parameter baseAddress: `UnsafeRawPointer` pointing to the beginning of a byte buffer that will store a training item, which
-     * will be incremented.
-     */
-    func unsafeWrite(to baseAddress: inout UnsafeMutableRawPointer) {
-        input.unsafeWrite(to: &baseAddress)
-        output.unsafeWrite(to: &baseAddress)
     }
     
 }

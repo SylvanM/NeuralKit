@@ -18,13 +18,26 @@ public class GeneticOptimizer {
     
     // MARK: Properties
     
-    private var dataSet: DataSet
+    /**
+     * The set used to compute the score for each organism
+     */
+    public let dataSet: DataSet
     
-    private var shape: NeuralNetwork.Shape
+    /**
+     * The shape of the neural network to evolve
+     */
+    public let shape: NeuralNetwork.Shape
     
-    private var breedFunction: Algorithm.BreedingFunction
+    /**
+     * The activation function of the neural networks to evolve
+     */
+    public let activationFunction: ActivationFunction
     
-    private var activationFunction: ActivationFunction
+    /**
+     * The function determining how two networks are bred
+     */
+    public var breedFunction: Algorithm.BreedingFunction
+    
     
     // MARK: Initializers
     
@@ -70,18 +83,8 @@ public class GeneticOptimizer {
         }
         
         Algorithm.evolve(organisms: &population, scores: &scores, fitness: eliminatingPortion, generations: iterations, score: score, breed: breed.breed)
-        
-        let maxScoreIndex = scores.max { a, b in
-            a.score < b.score
-        }!.index
-        
-        for score in scores {
-            print(score)
-        }
-        
-        print(maxScoreIndex)
 
-        return population[maxScoreIndex]
+        return population[scores.last!.index]
     }
     
 }

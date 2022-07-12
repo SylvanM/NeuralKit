@@ -29,31 +29,36 @@ class GeneticXOR: XCTestCase {
         
     }
     
-    func testGeneticOptimizer() throws {
-        let xorShape = [2, 2, 1]
-        let activationFunction = ActivationFunction.sigmoid
-        let generationSize = 1000
-        let iterations = 50
-        let fitnessCutoff = 0.7
-        
-        let directory = URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/XOR Data Set")
-        let dataSet = try DataSet(name: "XOR", inDirectory: directory)
-        
-        let optimizer = GeneticOptimizer(optimizingShape: xorShape, activationFunction: activationFunction, withData: dataSet, breedingMethod: .arithmeticMean())
-        
-        let finalNetwork = optimizer.findOptimalNetwork(populationSize: generationSize, eliminatingPortion: fitnessCutoff, iterations: iterations)
-        let finalNetworkCost = dataSet.trainingCost(of: finalNetwork)
-        
-        print("Found final network, with cost \(finalNetworkCost):")
-        
-        let inputSpace = [0, 1]
-        inputSpace.forEach { a in
-            inputSpace.forEach { b in
-                let computed = finalNetwork.computeOutputLayer(forInput: Matrix(vector: [Double(a), Double(b)]))
-                print("\(a) ^ \(b) = \(computed)")
+    func testGeneticOptimizer() {
+        measure {
+            let xorShape = [2, 2, 1]
+            let activationFunction = ActivationFunction.step
+            let generationSize = 1000
+            let iterations = 500
+            let fitnessCutoff = 0.7
+            
+            let directory = URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/XOR Data Set")
+            let dataSet = try! DataSet(name: "XOR", inDirectory: directory)
+            
+            let optimizer = GeneticOptimizer(optimizingShape: xorShape, activationFunction: activationFunction, withData: dataSet, breedingMethod: .arithmeticMean())
+            
+            let finalNetwork = optimizer.findOptimalNetwork(populationSize: generationSize, eliminatingPortion: fitnessCutoff, iterations: iterations)
+            let finalNetworkCost = dataSet.trainingCost(of: finalNetwork)
+            
+            print("Final network cost: \(finalNetworkCost)")
+            
+            XCTAssertEqual(finalNetworkCost, 0)
+            
+            print("Showing classifications of the optimized network:")
+            let inputSpace = [0, 1]
+            inputSpace.forEach { a in
+                inputSpace.forEach { b in
+                    let computed = finalNetwork.computeOutputLayer(forInput: Matrix(vector: [Double(a), Double(b)]))
+                    print("\(a) ^ \(b) = \(computed)")
+                    XCTAssertEqual(a ^ b, Int(computed[0][0]))
+                }
             }
         }
-        
     }
     
     func testGenericAlg() throws {
@@ -64,7 +69,7 @@ class GeneticXOR: XCTestCase {
         let inputSpace = [0, 1]
         
         func score(_ net: NeuralNetwork) -> Double {
-            1 / dataSet.trainingCost(of: net)
+            -dataSet.trainingCost(of: net)
         }
         
         func avgScore(_ population: [NeuralNetwork]) -> Double {
@@ -76,7 +81,7 @@ class GeneticXOR: XCTestCase {
         // Now we actually make the population!
         
         let xorShape = [2, 2, 1]
-        let activationFunction = ActivationFunction.sigmoid
+        let activationFunction = ActivationFunction.step
         let generationSize = 1000
         let iterations = 50
         let fitnessCutoff = 0.7
@@ -116,9 +121,12 @@ class GeneticXOR: XCTestCase {
         print("Final Score: \(finalScore)")
         print("Improvement: \(finalScore - initialScore)")
         
-        let sampleSize = 10
-        let sampleIndices = scores[0..<10].map { $0.index }
+        scores.sort { lhs, rhs in
+            lhs.score > rhs.score
+        }
         
+        let sampleSize = 10
+        let sampleIndices = scores[0..<sampleSize].map { $0.index }
         
         print("Showcasing the top sample of \(sampleSize) talented survivors:")
         
