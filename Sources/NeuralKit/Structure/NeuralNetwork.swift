@@ -212,7 +212,29 @@ public class NeuralNetwork {
      * - Returns: The vector representing the activations of the output layer after the network feeds forward the input layer.
      */
     public func computeOutputLayer(forInput input: Matrix) -> Matrix {
-        compute(layer: weights.count, forInput: input)
+        var activations = [Matrix](repeating: Matrix(), count: weights.count)
+        feedForward(input: input, cache: &activations)
+        return activations.last!
+    }
+    
+    /**
+     * Computes the activations for each layer for some input to this neural network
+     *
+     * - Parameter input: The input vector
+     * - Parameter cache: The list of activations
+     *
+     * - Precondition: `cache.count == weights.count`
+     * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
+     */
+    public func feedForward(input: Matrix, cache: inout [Matrix]) {
+        var currentLayer = input
+        
+        for i in 0..<weights.count {
+            currentLayer = weights[i] * currentLayer
+            currentLayer.add(biases[i])
+            currentLayer.applyToAll(activationFunction.apply)
+            cache[i] = currentLayer
+        }
     }
     
     /**
