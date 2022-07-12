@@ -12,13 +12,25 @@ class DataSetTests: XCTestCase {
     
     // MARK: Known Safe URLs
     
+    typealias DSAccessInfo = (name: String, url: URL)
+    
     /**
      * Information for accessing the known XOR data set
      */
-    let xorInfo = (
+    let xorInfo: DSAccessInfo = (
         name: "XOR",
         url: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/XOR Data Set")
     )
+    
+    /**
+     * Information for accessing the MNIST data set
+     */
+    let mnistInfo: DSAccessInfo = (
+        name: "Digits",
+        url: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits")
+    )
+    
+    let mnistIDXDir = URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/MNIST Digits")
     
     // MARK: Template Code
 
@@ -43,6 +55,37 @@ class DataSetTests: XCTestCase {
         self.measure {
             // Put the code you want to measure the time of here.
         }
+    }
+    
+    // MARK: MNIST Data Utility Tests
+    
+    func convertMNSIT() throws {
+        let trainingImages = mnistIDXDir.appendingPathComponent("train-images.idx3-ubyte")
+        let trainingLabels = mnistIDXDir.appendingPathComponent("train-labels.idx1-ubyte")
+        
+        let testingImages = mnistIDXDir.appendingPathComponent("t10k-images.idx3-ubyte")
+        let testingLabels = mnistIDXDir.appendingPathComponent("t10k-labels.idx1-ubyte")
+        
+        let nkdsTrainingURL = mnistInfo.url.appendingPathComponent("Digits_train_data").appendingPathExtension("nkds")
+        let nkdsTestingURL = mnistInfo.url.appendingPathComponent("Digits_test_data").appendingPathExtension("nkds")
+        
+        try MNISTUtility.convert(imageFileURL: trainingImages, labelFileURL: trainingLabels, nkdsFileDes: nkdsTrainingURL)
+        try MNISTUtility.convert(imageFileURL: testingImages, labelFileURL: testingLabels, nkdsFileDes: nkdsTestingURL)
+    }
+    
+    func testMNISTData() throws {
+        
+        let mnistDataSet = try DataSet(name: mnistInfo.name, inDirectory: mnistInfo.url)
+        
+        var counter = 0
+        mnistDataSet.iterateTrainingData { item in
+            if counter % 1000 == 0 {
+                let mnistItem = MNISTUtility.MNISTItem(input: item.input, output: item.output)
+                print(mnistItem)
+            }
+            counter += 1
+        }
+        
     }
     
     // MARK: Reading Known Data Sets

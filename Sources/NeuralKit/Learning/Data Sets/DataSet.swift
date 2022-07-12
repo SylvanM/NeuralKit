@@ -73,7 +73,11 @@ public class DataSet {
     /**
      * A single training item
      */
-    public class Item {
+    open class Item: CustomStringConvertible {
+        
+        open var description: String {
+            "Input:\n\(input)\nOutput:\n\(output)"
+        }
         
         /**
          * The input vector
@@ -168,14 +172,11 @@ public class DataSet {
         
         // TODO: Eventually improve this with concurrency, prefetching, and other fun tricks!
         
-        let caseAmount = try! fileHandle.read(upToCount: MemoryLayout<Int>.size)!.withUnsafeBytes{
-            $0.bindMemory(to: Int.self).baseAddress!.pointee
-        }
+        let caseAmount = try DataSet.readCount(from: fileHandle)
+        let caseSize = try DataSet.readCaseSize(from: fileHandle)
         
-        let caseSize = try! DataSet.readCaseSize(from: fileHandle)
-        
-        for _ in 0..<caseAmount {
-            let data = try! fileHandle.read(upToCount: caseSize)!
+        for i in 0..<caseAmount {
+            let data = try fileHandle.read(upToCount: caseSize)!
             data.withUnsafeBytes { buffer in
                 let item = Item(unsafeBuffer: buffer)
                 closure(item)

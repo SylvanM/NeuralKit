@@ -37,10 +37,22 @@ extension DataSet {
         
         // write each item to the file!
         for item in items {
-            try handle.write(contentsOf: item.toBuffer())
+            try DataSet.write(item: item, to: handle)
         }
         
         try handle.close()
+    }
+    
+    /**
+     * Writes an `Item` to a data set file handle
+     *
+     * - Parameter item: The item to write to the data set
+     * - Parameter handle: The handle to write to
+     *
+     * - Precondition: `handle` is ready to write an `Item`
+     */
+    public static func write(item: Item, to handle: FileHandle) throws {
+        try handle.write(contentsOf: item.toBuffer())
     }
     
     /**
@@ -129,11 +141,7 @@ extension DataSet {
     
 }
 
-extension DataSet.Item: CustomStringConvertible {
-    
-    public var description: String {
-        "Input:\n\(input)\nOutput:\n\(output)"
-    }
+extension DataSet.Item {
     
     // MARK: Initializers
     
