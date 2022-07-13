@@ -289,7 +289,9 @@ public class NeuralNetwork {
      * - Returns: The sum of the squares of the differences between the expected and computed output activations
      */
     public func cost(for example: DataSet.Item) -> Double {
-        computeOutputLayer(forInput: example.input).distanceSquared(from: example.output)
+        let computed = computeOutputLayer(forInput: example.input)
+        let cost = computed.distanceSquared(from: example.output)
+        return cost
     }
     
     // MARK: Internal Helpers
