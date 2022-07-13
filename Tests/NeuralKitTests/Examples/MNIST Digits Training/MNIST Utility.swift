@@ -38,6 +38,10 @@ class MNISTUtility {
     
     class MNISTItem: DataSet.Item {
         
+        init(_ item: DataSet.Item) {
+            super.init(input: item.input, output: item.output)
+        }
+        
         override var description: String {
             
             var digit = 0

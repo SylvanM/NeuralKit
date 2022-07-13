@@ -80,7 +80,7 @@ class DataSetTests: XCTestCase {
         var counter = 0
         mnistDataSet.iterateTrainingData { item in
             if counter % 1000 == 0 {
-                let mnistItem = MNISTUtility.MNISTItem(input: item.input, output: item.output)
+                let mnistItem = MNISTUtility.MNISTItem(item)
                 print(mnistItem)
             }
             counter += 1
