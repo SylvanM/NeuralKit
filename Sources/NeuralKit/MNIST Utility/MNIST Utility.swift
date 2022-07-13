@@ -12,7 +12,7 @@ import MatrixKit
 /**
  * A type that iterates through an IDX file and returns the next represented vector when requested.
  */
-protocol IDXIterator {
+public protocol IDXIterator {
     
     /**
      * The number of total examples in the entire file
@@ -34,15 +34,15 @@ protocol IDXIterator {
 /**
  * A class containing methods for converting from the MNIST IDX files to NeuralKit NKDS files
  */
-class MNISTUtility {
+public class MNISTUtility {
     
-    class MNISTItem: DataSet.Item {
+    public class MNISTItem: DataSet.Item {
         
-        init(_ item: DataSet.Item) {
+        public init(_ item: DataSet.Item) {
             super.init(input: item.input, output: item.output)
         }
         
-        override var description: String {
+        public override var description: String {
             
             var digit = 0
             
@@ -175,7 +175,7 @@ class MNISTUtility {
      * - Parameter labelFileURL: The URL of the file containing the labels for each image
      * - Parameter nkdsFileDes: The output file to write to
      */
-    static func convert(imageFileURL: URL, labelFileURL: URL, nkdsFileDes: URL) throws {
+    public static func convert(imageFileURL: URL, labelFileURL: URL, nkdsFileDes: URL) throws {
         let imageIterator = try IDXPixelIterator(forFile: imageFileURL)
         let labelIterator = try IDXLabelIterator(forFile: labelFileURL)
         
