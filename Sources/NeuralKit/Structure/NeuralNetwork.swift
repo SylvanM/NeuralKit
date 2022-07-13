@@ -291,6 +291,13 @@ public class NeuralNetwork {
     public func cost(for example: DataSet.Item) -> Double {
         let computed = computeOutputLayer(forInput: example.input)
         let cost = computed.distanceSquared(from: example.output)
+        
+        #if DEBUG
+        if cost.isNaN {
+            print("Detected NAN for image")
+        }
+        #endif
+        
         return cost
     }
     
