@@ -64,18 +64,9 @@ class GDTestsDigits: XCTestCase {
         var counter = 0
         
         mnistDataSet.iterateTrainingData { trainingItem in
-            print("On item: \(counter)")
             let beforeStepCost = digitsNetwork.cost(for: trainingItem)
             
-            let beforeInv = digitsNetwork.invariantSatisied
-            
             GradientDescent.performStep(on: digitsNetwork, forExample: trainingItem, learningRate: learningRate)
-            
-            let afterInv = digitsNetwork.invariantSatisied
-            
-            if !afterInv {
-                XCTFail()
-            }
             
             let afterStepCost = digitsNetwork.cost(for: trainingItem)
             
@@ -91,14 +82,19 @@ class GDTestsDigits: XCTestCase {
         
         let digitsNetwork = makeNetwork()
         
-        let learningRate = 0.05
+        let learningRate: Double = 0.7
         
         let finalSampleSize = 10
         
         print("Beginning optimization")
-        GDOptimizer.optimize(digitsNetwork, learningRate: learningRate, forDataSet: mnistDataSet)
+        let preOptCost = mnistDataSet.testingCost(of: digitsNetwork)
         
+        print("Initial testing cost: \(preOptCost)")
+        
+        GDOptimizer.optimize(digitsNetwork, learningRate: learningRate, forDataSet: mnistDataSet)
         let testingCost = mnistDataSet.testingCost(of: digitsNetwork)
+        
+        print("Final cost: \(testingCost)")
         
         let digitClassifier = Classifier(fromNetwork: digitsNetwork) { output -> Int in
             var digit = 0
@@ -109,8 +105,7 @@ class GDTestsDigits: XCTestCase {
             }
             return digit
         }
-        
-        print("Final testing cost: \(testingCost)")
+    
         print("Showing some examples...")
         
         var counter = 0

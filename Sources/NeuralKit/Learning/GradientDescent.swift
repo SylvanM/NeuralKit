@@ -123,7 +123,8 @@ public class GradientDescent {
 
             #endif
             
-            network.weights[i].subtract(learningRate * gradients[i])
+//            network.weights[i].subtract(learningRate * gradients[i])
+            network.weights[i].add(learningRate * gradients[i])
             
             #if DEBUG
             
