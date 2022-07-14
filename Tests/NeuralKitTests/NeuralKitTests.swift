@@ -89,5 +89,27 @@ final class NeuralKitTests: XCTestCase {
         }
         
     }
+     
+    // MARK: Test Feed Forward
+    
+    func testFeedForward() throws {
+        let mnistData = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
+        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunction: .sigmoid)
+        
+        mnistData.iterateTrainingData { item in
+            let mnistItem = MNISTUtility.MNISTItem(item)
+            var activations = [Matrix](repeating: Matrix(), count: digitsNetwork.layerCount)
+            digitsNetwork.feedForward(input: mnistItem.input, cache: &activations)
+            
+            activations.forEach { activationVector in
+                activationVector.flatmap.forEach {
+                    XCTAssertFalse($0.isNaN)
+                    XCTAssertFalse($0.isInfinite)
+                }
+            }
+            
+            _ = digitsNetwork.cost(for: mnistItem)
+        }
+    }
     
 }

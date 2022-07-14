@@ -57,20 +57,47 @@ public class NeuralNetwork {
      * to the client. So, I've made this property public as well, so that the client can verify it if they so choose.
      */
     public var invariantSatisied: Bool {
+        if biases.count != weights.count {
+            print("Unequal amount of weights and biases")
+            return false
+        }
+        
         for i in 0..<(weights.count - 1) {
             if weights[i + 1].colCount != weights[i].rowCount {
+                print("Invalid weight dimensions")
                 return false
             }
         }
         
         for i in 0..<biases.count {
             if biases[i].colCount != 1 {
+                print("Biases aren't vectors")
                 return false
             }
             if biases[i].rowCount != weights[i].rowCount {
+                print("Invalid bias dimension: expected \(weights[i].rowCount) but got \(biases[i].rowCount)")
                 return false
             }
         }
+        
+        #if DEBUG
+        // we've been having a problem with NaN appearing everywhere
+        
+        if !weights.allSatisfy({ weightMatrix in
+            weightMatrix.flatmap.allSatisfy { !$0.isNaN }
+        }) {
+            print("Found NaN")
+            return false
+        }
+        
+        if !biases.allSatisfy({ biasMatrix in
+            biasMatrix.flatmap.allSatisfy { !$0.isNaN }
+        }) {
+            print("Found NaN")
+            return false
+        }
+        
+        #endif
         
         return true
     }
@@ -112,7 +139,7 @@ public class NeuralNetwork {
         
         for i in 0..<(shape.count - 1) {
             weights[i] = Matrix(rows: shape[i + 1], cols: shape[i])
-            biases[i] = Matrix(rows: shape[i], cols: 1)
+            biases[i] = Matrix(rows: shape[i + 1], cols: 1)
         }
         
         self.activationFunction = activationFunction
@@ -127,7 +154,7 @@ public class NeuralNetwork {
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
+    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
         
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
@@ -139,7 +166,11 @@ public class NeuralNetwork {
         
         if shouldIncludeBiases {
             for i in 0..<biases.count {
-                biases[i] = Matrix.random(rows: shape[i], cols: 1, range: biasRange)
+                biases[i] = Matrix.random(rows: shape[i + 1], cols: 1, range: biasRange)
+            }
+        } else {
+            for i in 0..<biases.count {
+                biases[i] = Matrix(rows: shape[i + 1], cols: 1)
             }
         }
         
@@ -252,6 +283,17 @@ public class NeuralNetwork {
         for i in 0..<weights.count {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
+            
+            #if DEBUG
+            let weight = weights[i]
+            let isRight = currentLayer.flatmap.allSatisfy({ !$0.isNaN })
+            if !isRight {
+                print("Found NaN in weights, showing weight matrix:")
+                print(weight)
+                fatalError()
+            }
+            #endif
+            
             currentLayer.applyToAll(activationFunction.apply)
             cache[i + 1] = currentLayer
         }
@@ -289,16 +331,7 @@ public class NeuralNetwork {
      * - Returns: The sum of the squares of the differences between the expected and computed output activations
      */
     public func cost(for example: DataSet.Item) -> Double {
-        let computed = computeOutputLayer(forInput: example.input)
-        let cost = computed.distanceSquared(from: example.output)
-        
-        #if DEBUG
-        if cost.isNaN {
-            print("Detected NAN for image")
-        }
-        #endif
-        
-        return cost
+        computeOutputLayer(forInput: example.input).distanceSquared(from: example.output)
     }
     
     // MARK: Internal Helpers

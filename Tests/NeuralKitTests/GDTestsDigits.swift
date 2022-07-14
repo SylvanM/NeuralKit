@@ -1,5 +1,5 @@
 //
-//  SGDTests.swift
+//  GDTestsDigits.swift
 //  
 //
 //  Created by Sylvan Martin on 7/12/22.
@@ -9,7 +9,14 @@ import XCTest
 import NeuralKit
 import MatrixKit
 
-class SGDTests: XCTestCase {
+class GDTestsDigits: XCTestCase {
+    
+    func makeNetwork() -> NeuralNetwork {
+        NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunction: .sigmoid)
+    }
+    
+    let mnistDataSet = try! DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
+    
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -21,8 +28,7 @@ class SGDTests: XCTestCase {
     
     func computingGradient() throws {
         
-        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], activationFunction: .sigmoid)
-        let mnistDataSet = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
+        let digitsNetwork = makeNetwork()
         
         var counter = 0
         mnistDataSet.iterateTestingData { item in
@@ -51,33 +57,46 @@ class SGDTests: XCTestCase {
     func testEachSGDStep() throws {
         
         // made to ensure that each step does in fact reduce the cost
+        let digitsNetwork = makeNetwork()
         
-        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], activationFunction: .sigmoid, biasRange: 0...0)
-        let mnistDataSet = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
+        let learningRate = 0.05
         
-        let learningRate = 0.5
+        var counter = 0
         
         mnistDataSet.iterateTrainingData { trainingItem in
+            print("On item: \(counter)")
             let beforeStepCost = digitsNetwork.cost(for: trainingItem)
-            SGDOptimizer.performStep(on: digitsNetwork, forExample: trainingItem, learningRate: learningRate)
+            
+            let beforeInv = digitsNetwork.invariantSatisied
+            
+            GradientDescent.performStep(on: digitsNetwork, forExample: trainingItem, learningRate: learningRate)
+            
+            let afterInv = digitsNetwork.invariantSatisied
+            
+            if !afterInv {
+                XCTFail()
+            }
+            
             let afterStepCost = digitsNetwork.cost(for: trainingItem)
             
-            print("Cost goes from \(beforeStepCost) to \(afterStepCost).")
             XCTAssertLessThan(afterStepCost, beforeStepCost)
+            
+            counter += 1
         }
+        
+        
     }
     
     func testFullSGDOptimization() throws {
         
-        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], activationFunction: .sigmoid)
-        let mnistDataSet = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
+        let digitsNetwork = makeNetwork()
         
         let learningRate = 0.05
         
         let finalSampleSize = 10
         
         print("Beginning optimization")
-        SGDOptimizer.optimize(digitsNetwork, learningRate: learningRate, forDataSet: mnistDataSet)
+        GDOptimizer.optimize(digitsNetwork, learningRate: learningRate, forDataSet: mnistDataSet)
         
         let testingCost = mnistDataSet.testingCost(of: digitsNetwork)
         

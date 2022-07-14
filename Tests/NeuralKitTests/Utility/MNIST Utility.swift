@@ -6,13 +6,13 @@
 //
 
 import Foundation
-import NeuralKit
 import MatrixKit
+import NeuralKit
 
 /**
  * A type that iterates through an IDX file and returns the next represented vector when requested.
  */
-public protocol IDXIterator {
+protocol IDXIterator {
     
     /**
      * The number of total examples in the entire file
@@ -34,15 +34,15 @@ public protocol IDXIterator {
 /**
  * A class containing methods for converting from the MNIST IDX files to NeuralKit NKDS files
  */
-public class MNISTUtility {
+class MNISTUtility {
     
-    public class MNISTItem: DataSet.Item {
+    class MNISTItem: DataSet.Item {
         
-        public init(_ item: DataSet.Item) {
+        init(_ item: DataSet.Item) {
             super.init(input: item.input, output: item.output)
         }
         
-        public override var description: String {
+        override var description: String {
             
             var digit = 0
             
@@ -175,7 +175,7 @@ public class MNISTUtility {
      * - Parameter labelFileURL: The URL of the file containing the labels for each image
      * - Parameter nkdsFileDes: The output file to write to
      */
-    public static func convert(imageFileURL: URL, labelFileURL: URL, nkdsFileDes: URL) throws {
+    static func convert(imageFileURL: URL, labelFileURL: URL, nkdsFileDes: URL) throws {
         let imageIterator = try IDXPixelIterator(forFile: imageFileURL)
         let labelIterator = try IDXLabelIterator(forFile: labelFileURL)
         

@@ -45,26 +45,95 @@ public class GradientDescent {
         // The cost gradient for the last layer, in activation space
         var costGradient = activations.last!
         
-        for i in 0..<costGradient.flatmap.count {
-            costGradient.flatmap[i] -= example.output.flatmap[i]
-            costGradient.flatmap[i] *= 2
-        }
+        // Derivative of cost function
+        costGradient -= example.output
+        costGradient *= 2
+        
+        #if DEBUG
+        assert(costGradient.flatmap.allSatisfy({ !$0.isNaN }), "Cost Gradient contains NaN")
+        #endif
         
         // compute all the derivatives at the pre-activated neuron value (before act. func. applied)
         for i in 0..<derivatives.count {
             derivatives[i].applyToAll(network.activationFunction.applyDerivative)
         }
         
+        #if DEBUG
+        
+        let toAssertNormal = derivatives.allSatisfy { der in
+            der.flatmap.allSatisfy {
+                !$0.isNaN
+            }
+        }
+        
+        let toAssertFininte = derivatives.allSatisfy { der in
+            der.flatmap.allSatisfy {
+                $0.isFinite
+            }
+        }
+        
+        assert(toAssertNormal, "Derivatives contain NaN")
+        assert(toAssertFininte, "Derivatives are not all finite")
+        
+        #endif
+        
         // compute the partials and gradient for the last layer so the rest are easy
         partials[partials.count - 1]    = derivatives[derivatives.count - 1].hadamard(with: costGradient)
-        gradients[gradients.count - 1]  = activations[partials.count - 2].leftMultiply(by: partials[partials.count - 1])
         
+        #if DEBUG
+        for i in 0..<partials.count {
+            assert(partials[i].flatmap.allSatisfy({ !$0.isNaN }), "Partials contain NaN")
+        }
+        #endif
+        
+        gradients[gradients.count - 1]  = partials[partials.count - 1] * activations[activations.count - 2].transpose
         
         for i in (0..<(partials.count - 1)).reversed() {
-            partials[i]  = derivatives[i].hadamard(with: network.weights[i]) // might need to index weights 1 higher
+            partials[i] = derivatives[i].hadamard(with: network.weights[i + 1].transpose * partials[i + 1]) // might need to index weights 1 higher
+            
+            #if DEBUG
+            assert(partials[i].flatmap.allSatisfy({ !$0.isNaN }), "Gradient contains NaN")
+            #endif
+            
             gradients[i] = activations[i].transpose.leftMultiply(by: partials[i])
         }
         
+        
+    }
+    
+    /**
+     * Applies one step of gradient descent to the weights of a neural network
+     */
+    public static func performStep(on network: NeuralNetwork, forExample example: DataSet.Item, learningRate: Double) {
+        var gradients = [Matrix](repeating: Matrix(), count: network.weights.count)
+    
+        GradientDescent.computeWeightGradients(ofNetwork: network, forExample: example, gradients: &gradients)
+        
+        for i in 0..<gradients.count {
+            #if DEBUG
+
+            var foundNan: Bool {
+                network.weights[i].flatmap.contains { $0.isNaN }
+            }
+
+            if foundNan {
+                print("Error: Found NaN in weights BEFORE having computed gradient")
+                fatalError()
+            }
+
+            #endif
+            
+            network.weights[i].subtract(learningRate * gradients[i])
+            
+            #if DEBUG
+            
+            if foundNan {
+                print("Error: Found NaN in weights after having computed gradient")
+                fatalError()
+            }
+            
+            #endif
+        }
     }
     
 }
