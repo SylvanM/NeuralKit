@@ -80,25 +80,6 @@ public class NeuralNetwork {
             }
         }
         
-        #if DEBUG
-        // we've been having a problem with NaN appearing everywhere
-        
-        if !weights.allSatisfy({ weightMatrix in
-            weightMatrix.flatmap.allSatisfy { !$0.isNaN }
-        }) {
-            print("Found NaN")
-            return false
-        }
-        
-        if !biases.allSatisfy({ biasMatrix in
-            biasMatrix.flatmap.allSatisfy { !$0.isNaN }
-        }) {
-            print("Found NaN")
-            return false
-        }
-        
-        #endif
-        
         return true
     }
     
@@ -283,17 +264,6 @@ public class NeuralNetwork {
         for i in 0..<weights.count {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
-            
-            #if DEBUG
-            let weight = weights[i]
-            let isRight = currentLayer.flatmap.allSatisfy({ !$0.isNaN })
-            if !isRight {
-                print("Found NaN in weights, showing weight matrix:")
-                print(weight)
-                fatalError()
-            }
-            #endif
-            
             currentLayer.applyToAll(activationFunction.apply)
             cache[i + 1] = currentLayer
         }

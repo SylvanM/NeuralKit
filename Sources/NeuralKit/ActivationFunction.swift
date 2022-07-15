@@ -49,17 +49,7 @@ public struct ActivationFunction: Equatable {
      * - Parameter x: The value to apply this activation function to
      */
     public func apply(to x: inout Double) {
-#if DEBUG
-        let before = x
-#endif
-        
         x = compute(x)
-        
-#if DEBUG
-        if x.isInfinite || x.isNaN {
-            fatalError("Computed \(before) -> \(x) with function \(identifier)")
-        }
-#endif
     }
     
     /**
@@ -68,18 +58,7 @@ public struct ActivationFunction: Equatable {
      * - Parameter x: The value to apply this activation function to
      */
     public func applyDerivative(to x: inout Double) {
-        
-        #if DEBUG
-        let before = x
-        #endif
-        
         x = derivative(x)
-        
-        #if DEBUG
-        if x.isInfinite || x.isNaN {
-            fatalError("Computed \(before) -> \(x) with function \(identifier)")
-        }
-        #endif
     }
     
     // MARK: Enumerations
@@ -178,22 +157,7 @@ extension AFGroup {
     }
     
     fileprivate static func _sig(_ x: Double) -> Double {
-        #if DEBUG
-        let eThing = 1 + exp(-x)
-        let div = 1 / eThing
-
-        if div.isNaN {
-            fatalError("Got NaN for div on \(x)")
-        }
-
-        if div.isInfinite {
-            fatalError("Got \(div) for div on \(x)", file: "ActivationFunction.swift", line: 190)
-        }
-
-        return div
-        #else
         1 / (1 + exp(-x))
-        #endif
     }
     
     fileprivate static func _sigder(_ x: Double) -> Double {

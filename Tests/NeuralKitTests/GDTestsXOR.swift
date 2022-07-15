@@ -77,7 +77,7 @@ class GDTestsXOR: XCTestCase {
     }
     
     func testFullSGDOptimization() throws {
-        
+    
         let XORNetwork = makeNetwork()
         
         let learningRate: Double = 1
@@ -88,7 +88,7 @@ class GDTestsXOR: XCTestCase {
         let testingCost = xorDataSet.testingCost(of: XORNetwork)
         
         let xorClassifier = Classifier(fromNetwork: XORNetwork) { output -> Double in
-            output[0][0]
+            output[0]
         }
         
         print("Final testing cost: \(testingCost)")

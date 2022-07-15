@@ -46,8 +46,8 @@ class MNISTUtility {
             
             var digit = 0
             
-            for i in 0..<output.flatmap.count {
-                if output.flatmap[i] == 1 {
+            for i in 0..<output.count {
+                if output[i] == 1 {
                     digit = i
                     break
                 }
@@ -55,7 +55,7 @@ class MNISTUtility {
             
             var desc = "Handwitten digit: \(digit)"
             
-            let pixels = input.flatmap.map { brightness -> String in
+            let pixels = input.map { brightness -> String in
                 if brightness <= 0.2 {
                     return " "
                 } else if brightness <= 0.4 {

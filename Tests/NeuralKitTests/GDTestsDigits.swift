@@ -78,56 +78,74 @@ class GDTestsDigits: XCTestCase {
         
     }
     
-    func testFullSGDOptimization() throws {
+    func testFullGDOptimization() throws {
         
-        let digitsNetwork = makeNetwork()
+        let learningRates = [0.001, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1, 1.2, 1.5, 1.7, 2]
+        var entries = learningRates.map { rate in
+            (rate: rate, network: makeNetwork(), cost: Double(0))
+        }
         
-        let learningRate: Double = 0.7
+        print("----------------------------------------------------------------")
         
-        let finalSampleSize = 10
+        for i in 0..<entries.count {
+            let preOptCost = mnistDataSet.testingCost(of: entries[i].network)
+            
+            print("Optimizing network \(i) with learning rate \(entries[i].rate)...")
+            print("Initial testing cost: \(preOptCost)")
+            
+            GDOptimizer.optimize(entries[i].network, learningRate: entries[i].rate, forDataSet: mnistDataSet)
+            
+            entries[i].cost = mnistDataSet.testingCost(of: entries[i].network)
+            
+            print("Final cost: \(entries[i].cost)")
+            print("----------------------------------------------------------------")
+        }
         
-        print("Beginning optimization")
-        let preOptCost = mnistDataSet.testingCost(of: digitsNetwork)
+        entries.sort { lhs, rhs in
+            lhs.cost < rhs.cost
+        }
         
-        print("Initial testing cost: \(preOptCost)")
+        print("Optimal learning rate is \(entries[0].rate) with cost \(entries[0].cost), demonstrating optimal network:")
         
-        GDOptimizer.optimize(digitsNetwork, learningRate: learningRate, forDataSet: mnistDataSet)
-        let testingCost = mnistDataSet.testingCost(of: digitsNetwork)
-        
-        print("Final cost: \(testingCost)")
-        
-        let digitClassifier = Classifier(fromNetwork: digitsNetwork) { output -> Int in
+        let digitClassifier = Classifier(fromNetwork: entries[0].network) { output -> Int in
             var digit = 0
             for i in 1...9 {
-                if output.flatmap[i] > output.flatmap[digit] {
+                if output[i] > output[digit] {
                     digit = i
                 }
             }
             return digit
         }
-    
-        print("Showing some examples...")
         
+        var correct = 0
         var counter = 0
+        
+        print("----------------------------------------------------------------")
         
         mnistDataSet.iterateTestingData { item in
             
-            if counter <= finalSampleSize {
-                let digitItem = MNISTUtility.MNISTItem(item)
-                let choice = digitClassifier.classify(digitItem.input)
-                
-                print("--------------------------------")
-                print("Training Example:")
-                print(digitItem)
-                print("Network says: \(choice)")
+            let label = digitClassifier.interpret(item.output)
+            let computed = digitClassifier.classify(item.input)
+            
+            if label == computed {
+                correct += 1
             }
             
+            if counter % (1000 + Int.random(in: -5...5)) == 0 {
+                print("Training Example \(counter):")
+                print(MNISTUtility.MNISTItem(item))
+                print("Network says: \(computed)")
+                print("----------------------------------------------------------------")
+            }
+            
+            
+            
             counter += 1
-            
-            // there isn't really a nice way (yet) to only iterate a couple, so we just sit here while
-            // it goes through the rest
-            
         }
+        
+        let accuracy = 100 * Double(correct) / Double(mnistDataSet.testingItemsCount)
+        
+        print("Final accuracy: \(String(format: "%.02f", accuracy))")
         
     }
 

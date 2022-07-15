@@ -15,7 +15,7 @@ class XORItem: DataSet.Item {
     }
     
     override var description: String {
-        "Training Example: \(Int(input.flatmap.first!)) ^ \(Int(input.flatmap.last!)) = \(Int(output[0][0]))"
+        "Training Example: \(Int(input[0])) ^ \(Int(input[1])) = \(Int(output[0, 0]))"
     }
     
 }

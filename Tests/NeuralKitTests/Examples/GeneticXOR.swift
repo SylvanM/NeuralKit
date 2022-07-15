@@ -55,7 +55,7 @@ class GeneticXOR: XCTestCase {
                 inputSpace.forEach { b in
                     let computed = finalNetwork.computeOutputLayer(forInput: Matrix(vector: [Double(a), Double(b)]))
                     print("\(a) ^ \(b) = \(computed)")
-                    XCTAssertEqual(a ^ b, Int(computed[0][0]))
+                    XCTAssertEqual(a ^ b, Int(computed[0, 0]))
                 }
             }
         }

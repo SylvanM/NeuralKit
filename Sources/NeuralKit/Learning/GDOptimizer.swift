@@ -20,10 +20,11 @@ public class GDOptimizer {
      * - Parameter network: The `NeuralNetwork` to optimize
      * - Parameter learningRate: The size of each step taken down the gradient
      * - Parameter dataSet: The `DataSet` to use as training data
+     * - Parameter normalizingGradient: If set to `true`, the gradient of the cost function will be normalized before being applied to the weights and biases.
      */
-    public static func optimize(_ network: NeuralNetwork, learningRate: Double, forDataSet dataSet: DataSet) {
+    public static func optimize(_ network: NeuralNetwork, learningRate: Double, forDataSet dataSet: DataSet, normalizingGradient: Bool = true) {
         dataSet.iterateTrainingData { example in
-            GradientDescent.performStep(on: network, forExample: example, learningRate: learningRate)
+            GradientDescent.performStep(on: network, forExample: example, learningRate: learningRate, normalizingGradient: normalizingGradient)
         }
     }
     

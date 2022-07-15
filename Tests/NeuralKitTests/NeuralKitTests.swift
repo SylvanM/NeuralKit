@@ -102,7 +102,7 @@ final class NeuralKitTests: XCTestCase {
             digitsNetwork.feedForward(input: mnistItem.input, cache: &activations)
             
             activations.forEach { activationVector in
-                activationVector.flatmap.forEach {
+                activationVector.forEach {
                     XCTAssertFalse($0.isNaN)
                     XCTAssertFalse($0.isInfinite)
                 }
