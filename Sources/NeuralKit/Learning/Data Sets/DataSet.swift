@@ -20,7 +20,7 @@ import MatrixKit
  * - 8 bytes containing the size (in bytes) of each item
  * - The items
  */
-public class DataSet {
+open class DataSet {
     
     // MARK: Properties
     
