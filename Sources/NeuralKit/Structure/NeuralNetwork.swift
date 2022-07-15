@@ -43,6 +43,13 @@ public class NeuralNetwork {
     public var biases: [Matrix]
     
     /**
+     * The number of layers in this neural network, including the input and output layer
+     */
+    public var layerCount: Int {
+        weights.count + 1
+    }
+    
+    /**
      * This checks that all representation invariants holds.
      *
      * It is an industry standard that properties like this are private, and the client can't even alter the other properties that may violate it at all.
@@ -50,17 +57,25 @@ public class NeuralNetwork {
      * to the client. So, I've made this property public as well, so that the client can verify it if they so choose.
      */
     public var invariantSatisied: Bool {
+        if biases.count != weights.count {
+            print("Unequal amount of weights and biases")
+            return false
+        }
+        
         for i in 0..<(weights.count - 1) {
             if weights[i + 1].colCount != weights[i].rowCount {
+                print("Invalid weight dimensions")
                 return false
             }
         }
         
         for i in 0..<biases.count {
             if biases[i].colCount != 1 {
+                print("Biases aren't vectors")
                 return false
             }
             if biases[i].rowCount != weights[i].rowCount {
+                print("Invalid bias dimension: expected \(weights[i].rowCount) but got \(biases[i].rowCount)")
                 return false
             }
         }
@@ -105,7 +120,7 @@ public class NeuralNetwork {
         
         for i in 0..<(shape.count - 1) {
             weights[i] = Matrix(rows: shape[i + 1], cols: shape[i])
-            biases[i] = Matrix(rows: shape[i], cols: 1)
+            biases[i] = Matrix(rows: shape[i + 1], cols: 1)
         }
         
         self.activationFunction = activationFunction
@@ -115,21 +130,31 @@ public class NeuralNetwork {
      * Creates a neural network with random weights and biases, with a certain network dimension.
      *
      * - Parameter shape: See the documentation for `init(shape: [Int])`
-     * - Parameter shouldIncludeBiases: If `false`, this network will only compute with weights.
+     * - Parameter shouldIncludeBiases: If `false`, this network will only compute with weights, biases will be all set to zero.
      * - Parameter activationFunction: The activation function for the random network
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = 0...1, biasRange: ClosedRange<Double> = 0...1) {
+    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
         
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
         
-        for i in 0..<(shape.count - 1) {
+        for i in 0..<weights.count {
             weights[i] = Matrix.random(rows: shape[i + 1], cols: shape[i], range: weightRange)
-            biases[i] = Matrix.random(rows: shape[i], cols: 1, range: biasRange)
         }
+        
+        if shouldIncludeBiases {
+            for i in 0..<biases.count {
+                biases[i] = Matrix.random(rows: shape[i + 1], cols: 1, range: biasRange)
+            }
+        } else {
+            for i in 0..<biases.count {
+                biases[i] = Matrix(rows: shape[i + 1], cols: 1)
+            }
+        }
+        
         
         self.activationFunction = activationFunction
     }
@@ -212,7 +237,60 @@ public class NeuralNetwork {
      * - Returns: The vector representing the activations of the output layer after the network feeds forward the input layer.
      */
     public func computeOutputLayer(forInput input: Matrix) -> Matrix {
-        compute(layer: weights.count, forInput: input)
+        var currentLayer = input
+        
+        for i in 0..<weights.count {
+            currentLayer = weights[i] * currentLayer
+            currentLayer.add(biases[i])
+            currentLayer.applyToAll(activationFunction.apply)
+        }
+        
+        return currentLayer
+    }
+    
+    /**
+     * Computes the activations for each layer for some input to this neural network
+     *
+     * - Parameter input: The input vector
+     * - Parameter cache: The list of activations
+     *
+     * - Precondition: `cache.count == layerCount`
+     * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
+     */
+    public func feedForward(input: Matrix, cache: inout [Matrix]) {
+        var currentLayer = input
+        cache[0] = input
+        
+        for i in 0..<weights.count {
+            currentLayer = weights[i] * currentLayer
+            currentLayer.add(biases[i])
+            currentLayer.applyToAll(activationFunction.apply)
+            cache[i + 1] = currentLayer
+        }
+    }
+    
+    /**
+     * Computes the activations for each layer for some input to this neural network
+     *
+     * - Parameter input: The input vector
+     * - Parameter cache: The list of activations
+     * - Parameter beforeAdjustedCache: The list of input activations BEFORE the activation function is applied
+     *
+     * - Precondition: `cache.count == layerCount`
+     * - Precondition: `beforeAdjustedCache.count == layerCount - 1`
+     * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
+     */
+    public func feedForward(input: Matrix, cache: inout [Matrix], beforeAdjustedCache: inout [Matrix]) {
+        var currentLayer = input
+        cache[0] = input
+        
+        for i in 0..<weights.count {
+            currentLayer = weights[i] * currentLayer
+            currentLayer.add(biases[i])
+            beforeAdjustedCache[i] = currentLayer
+            currentLayer.applyToAll(activationFunction.apply)
+            cache[i + 1] = currentLayer
+        }
     }
     
     /**

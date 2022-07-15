@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import NeuralKit
 import MatrixKit
+import NeuralKit
 
 /**
  * A type that iterates through an IDX file and returns the next represented vector when requested.
@@ -38,12 +38,16 @@ class MNISTUtility {
     
     class MNISTItem: DataSet.Item {
         
+        init(_ item: DataSet.Item) {
+            super.init(input: item.input, output: item.output)
+        }
+        
         override var description: String {
             
             var digit = 0
             
-            for i in 0..<output.flatmap.count {
-                if output.flatmap[i] == 1 {
+            for i in 0..<output.count {
+                if output[i] == 1 {
                     digit = i
                     break
                 }
@@ -51,7 +55,7 @@ class MNISTUtility {
             
             var desc = "Handwitten digit: \(digit)"
             
-            let pixels = input.flatmap.map { brightness -> String in
+            let pixels = input.map { brightness -> String in
                 if brightness <= 0.2 {
                     return " "
                 } else if brightness <= 0.4 {

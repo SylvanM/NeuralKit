@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "matrixkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SylvanM/MatrixKit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "e9819942a24f3b0bceb2d66b15e7ec687b83f8b0"
+      }
+    }
+  ],
+  "version" : 2
+}

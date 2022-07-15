@@ -52,6 +52,15 @@ public struct ActivationFunction: Equatable {
         x = compute(x)
     }
     
+    /**
+     * Applies this activation function's derivative, in place
+     *
+     * - Parameter x: The value to apply this activation function to
+     */
+    public func applyDerivative(to x: inout Double) {
+        x = derivative(x)
+    }
+    
     // MARK: Enumerations
     
     /**
@@ -146,11 +155,19 @@ extension AFGroup {
     } derivative: { x in
         x <= 0 ? 0 : 1
     }
+    
+    fileprivate static func _sig(_ x: Double) -> Double {
+        1 / (1 + exp(-x))
+    }
+    
+    fileprivate static func _sigder(_ x: Double) -> Double {
+        _sig(x) * (1 - _sig(x))
+    }
 
     static let sigmoid = AFGroup { x in
-        1 / (1 + exp(-x))
+        _sig(x)
     } derivative: { x in
-        (1 / (1 + exp(-x))) - (1 / pow(1 / (1 + exp(-x)), 2))
+        _sigder(x)
     }
 
     static let hyperTan = AFGroup(compute: tanh) { x in
