@@ -36,17 +36,22 @@ public extension NeuralNetwork {
         // size of necessary buffer, in bytes
         let size = matrixBuffers.reduce(into: 0) { partialResult, buffer in
             partialResult += buffer.count
-        } + MemoryLayout<Int>.size * 2
+        }
+        + MemoryLayout<Int>.size // Writing the layer count
+        + MemoryLayout<Int>.size * activationFunctions.count // Write the activation function for each layer
         
         let writeBuffer = UnsafeMutableRawBufferPointer.allocate(byteCount: size, alignment: 1)
         
         let writeLayerCountAddress = writeBuffer.bindMemory(to: Int.self).baseAddress!
-        writeLayerCountAddress.pointee = weights.count + 1
+        writeLayerCountAddress.pointee = layerCount
         
-        let actFuncAddress = writeLayerCountAddress.advanced(by: 1)
-        actFuncAddress.pointee = self.activationFunction.identifier.rawValue
+        let actFuncAddresses = UnsafeMutableBufferPointer<Int>(start: writeLayerCountAddress.advanced(by: 1), count: activationFunctions.count)
         
-        var matrixAddress = writeBuffer.baseAddress!.advanced(by: 2 * MemoryLayout<Int>.size)
+        for i in 0..<activationFunctions.count {
+            actFuncAddresses[i] = activationFunctions[i].identifier.rawValue
+        }
+        
+        var matrixAddress = UnsafeMutableRawPointer(actFuncAddresses.baseAddress!.advanced(by: actFuncAddresses.count))
         
         matrices.forEach { matrix in
             matrix.unsafeWrite(to: &matrixAddress)

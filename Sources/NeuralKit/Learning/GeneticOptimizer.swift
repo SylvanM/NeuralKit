@@ -31,7 +31,7 @@ public class GeneticOptimizer {
     /**
      * The activation function of the neural networks to evolve
      */
-    public let activationFunction: ActivationFunction
+    public let activationFunctions: [ActivationFunction]
     
     /**
      * The function determining how two networks are bred
@@ -48,11 +48,11 @@ public class GeneticOptimizer {
      * - Parameter dataSet: The set of data to use to optimize
      * - Parameter breedingMethod: The function to use to breed two `NeuralNetwork`s to create a new one
      */
-    public init(optimizingShape shape: NeuralNetwork.Shape, activationFunction: ActivationFunction, withData dataSet: DataSet, breedingMethod: Algorithm.BreedingFunction) {
+    public init(optimizingShape shape: NeuralNetwork.Shape, activationFunctions: [ActivationFunction], withData dataSet: DataSet, breedingMethod: Algorithm.BreedingFunction) {
         self.shape = shape
         self.dataSet = dataSet
         self.breedFunction = breedingMethod
-        self.activationFunction = activationFunction
+        self.activationFunctions = activationFunctions
     }
     
     /**
@@ -67,7 +67,7 @@ public class GeneticOptimizer {
      */
     public func findOptimalNetwork(populationSize: Int, eliminatingPortion: Double, iterations: Int, breed: Algorithm.BreedingFunction = .arithmeticMean(), initialWeightRange: ClosedRange<Double> = -10...10, initialBiasRange: ClosedRange<Double> = -10...10, uponGenerationCompletion: (([NeuralNetwork]) -> ())? = nil) -> NeuralNetwork {
         
-        var population = [NeuralNetwork](repeating: NeuralNetwork(shape: shape), count: populationSize)
+        var population = [NeuralNetwork](repeating: NeuralNetwork(shape: shape, activationFunctions: activationFunctions), count: populationSize)
         var scores = [Algorithm.ScoreRecord](repeating: (index: 0, score: 0), count: populationSize)
         
         for i in 0..<population.count {
@@ -79,7 +79,7 @@ public class GeneticOptimizer {
                     element = Double.random(in: initialBiasRange)
                 }
             }
-            population[i].activationFunction = activationFunction
+            population[i].activationFunctions = activationFunctions
         }
         
         Algorithm.evolve(organisms: &population, scores: &scores, fitness: eliminatingPortion, generations: iterations, score: score, breed: breed.breed) {

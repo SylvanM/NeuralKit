@@ -91,7 +91,7 @@ public class GradientDescent {
         
         // compute all the derivatives at the pre-activated neuron value (before act. func. applied)
         for i in 0..<derivatives.count {
-            derivatives[i].applyToAll(network.activationFunction.applyDerivative)
+            derivatives[i].applyToAll(network.activationFunctions[i].applyDerivative)
         }
         
         // compute the partials and gradient for the last layer so the rest are easy
