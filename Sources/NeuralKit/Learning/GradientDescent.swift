@@ -61,17 +61,38 @@ public class GradientDescent {
         
         // biases are no different than a weight with a constant input of one
         
-        
-        for i in (0..<(partials.count - 1)).reversed() {
-            partials[i] = derivatives[i].hadamard(with: network.weights[i + 1].transpose * partials[i + 1]) // might need to index weights 1 higher
-            weightGradients[i] = activations[i].transpose.leftMultiply(by: partials[i])
-        }
+        backprop(
+            layer: partials.count - 2,
+            network: network,
+            activations: &activations,
+            derivatives: &derivatives,
+            weightGradients: &weightGradients,
+            biasGradients: &biasGradients,
+            partials: &partials
+        )
         
         if normalizingGradient {
             for i in 0..<weightGradients.count {
                 weightGradients[i].normalize()
             }
         }
+    }
+    
+    private static func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partials: inout [Matrix]) {
+        if layer == 0 { return }
+        
+        partials[i] = derivatives[i].hadamard(with: network.weights[i + 1].transpose * partials[i + 1])
+        weightGradients[i] = activations[i].transpose.leftMultiply(by: partials[i])
+        
+        backprop(
+            layer: layer - 1,
+             network: network,
+             activations: &activations,
+             derivatives: &derivatives,
+             weightGradients: &weightGradients,
+             biasGradients: &biasGradients,
+             partials: &partials
+        )
     }
     
     /**
