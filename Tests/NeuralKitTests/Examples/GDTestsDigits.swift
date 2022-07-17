@@ -15,7 +15,7 @@ class GDTestsDigits: XCTestCase {
         NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunction: .sigmoid)
     }
     
-    let mnistDataSet = try! DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "Put path to Digits NKDS directory here"))
+    let mnistDataSet = try! DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
     
     func testFullGDOptimization() throws {
         
@@ -32,7 +32,8 @@ class GDTestsDigits: XCTestCase {
             print("Optimizing network \(i) with learning rate \(entries[i].rate)...")
             print("Initial testing cost: \(preOptCost)")
             
-            GDOptimizer.optimize(entries[i].network, learningRate: entries[i].rate, forDataSet: mnistDataSet)
+            let optimizer = GradientDescent(for: entries[i].network, usingDataSet: mnistDataSet, learningRate: entries[i].rate)
+            optimizer.optimize()
             
             entries[i].cost = mnistDataSet.testingCost(of: entries[i].network)
             
