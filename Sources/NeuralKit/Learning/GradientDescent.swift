@@ -13,19 +13,58 @@ import MatrixKit
  */
 public class GradientDescent {
     
+    // MARK: Properties
+    
+    /**
+     * The network to perform gradient decent on
+     */
+    public var network: NeuralNetwork
+    
+    /**
+     * Whether or not the gradient should be normalized
+     */
+    public var shouldNormalizeGradient: Bool
+    
+    /**
+     * The data set to use to train this network
+     */
+    public var dataSet: DataSet
+    
+    /**
+     * The learning rate
+     */
+    public var learningRate: Double
+    
+    // MARK: Initializers
+    
+    /**
+     * Creates a `GradientDescent` optimizer
+     *
+     * - Parameter network: The `NeuralNetwork` to analyze
+     * - Parameter dataSet: The `DataSet` to use for optimization
+     * - Parameter learningRate: The learning rate (sorry)
+     * - Parameter shouldNormalizeGradient: If `true`, the computed gradient will be normalized
+     */
+    public init(for network: NeuralNetwork, usingDataSet dataSet: DataSet, learningRate: Double, shouldNormalizeGradient: Bool = true) {
+        self.network = network
+        self.dataSet = dataSet
+        self.learningRate = learningRate
+        self.shouldNormalizeGradient = shouldNormalizeGradient
+    }
+    
     /**
      * Computes the gradients, in weight space, of the cost function for a particular training example.
      *
      * This is just backpropogation for the weights.
      *
-     * - Parameter network: The network to compute the cost of
      * - Parameter example: The training example to compute the gradient for
-     * - Parameter gradients: The array of weight gradients to be "filled" by this function
-     * - Parameter normalizingGradient: If set to `true`, the gradient vector will be normalized before being applied to each weight.
+     * - Parameter weightGradients: The array of weight gradients to be "filled" by this function
+     * - Parameter biasGradients: The array of bias gradients to be computed by this function
      *
-     * - Precondition: `gradients.count == network.weights.count`
+     * - Precondition: `weightGradients.count == network.weights.count`
+     * - Precondition: `biasGradients.count == network.baises.count`
      */
-    public static func computeGradients(ofNetwork network: NeuralNetwork, forExample example: DataSet.Item, weightGradients: inout [Matrix], biasGradients: inout [Matrix], normalizingGradient: Bool = true) {
+    public func computeGradients(forExample example: DataSet.Item, weightGradients: inout [Matrix], biasGradients: inout [Matrix]) {
         
         // all the comments here are to keep things straight in my mind, because there's a lot of
         // room to make an off-by-one error here.
@@ -71,18 +110,18 @@ public class GradientDescent {
             partials: &partials
         )
         
-        if normalizingGradient {
+        if shouldNormalizeGradient {
             for i in 0..<weightGradients.count {
                 weightGradients[i].normalize()
             }
         }
     }
     
-    private static func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partials: inout [Matrix]) {
-        if layer == 0 { return }
+    private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partials: inout [Matrix]) {
+        if layer < 0 { return }
         
-        partials[i] = derivatives[i].hadamard(with: network.weights[i + 1].transpose * partials[i + 1])
-        weightGradients[i] = activations[i].transpose.leftMultiply(by: partials[i])
+        partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
+        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
         
         backprop(
             layer: layer - 1,
@@ -98,11 +137,11 @@ public class GradientDescent {
     /**
      * Applies one step of gradient descent to the weights of a neural network
      */
-    public static func performStep(on network: NeuralNetwork, forExample example: DataSet.Item, learningRate: Double, normalizingGradient: Bool = true) {
+    public func performStep(forExample example: DataSet.Item) {
         var weightGradients = network.weights.map { $0.zero }
-        var biasGradients = network.biases.map { $0.zero }
+        var biasGradients   = network.biases.map  { $0.zero }
     
-        GradientDescent.computeGradients(ofNetwork: network, forExample: example, weightGradients: &weightGradients, biasGradients: &biasGradients, normalizingGradient: normalizingGradient)
+        computeGradients(forExample: example, weightGradients: &weightGradients, biasGradients: &biasGradients)
         
         for i in 0..<weightGradients.count {
             
@@ -117,5 +156,15 @@ public class GradientDescent {
         
         }
     }
+    
+    /**
+     * Applies a step of backpropogation for every training item in a data set
+     */
+    public func optimize() {
+        dataSet.iterateTrainingData {
+            performStep(forExample: $0)
+        }
+    }
+    
     
 }
