@@ -49,7 +49,17 @@ public struct ActivationFunction: Equatable {
      * - Parameter x: The value to apply this activation function to
      */
     public func apply(to x: inout Double) {
+        #if DEBUG
+        if x.isNaN {
+            fatalError("NaN before apply")
+        }
         x = compute(x)
+        if x.isNaN {
+            fatalError("NaN after apply")
+        }
+        #else
+        x = compute(x)
+        #endif
     }
     
     /**

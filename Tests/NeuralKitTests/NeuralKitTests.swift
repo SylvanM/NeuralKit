@@ -9,7 +9,7 @@ final class NeuralKitTests: XCTestCase {
     func testReadWrite() {
         
         let shape = [2, 2, 1]
-        let actfuncs: [ActivationFunction] = [.sigmoid, .hyperTan]
+        let actfuncs: [ActivationFunction] = [.sigmoid, .sigmoid]
         let net = NeuralNetwork.init(randomWithShape: Array(shape), activationFunctions: actfuncs)
         
         XCTAssertEqual(net.shape, shape)
@@ -119,6 +119,9 @@ final class NeuralKitTests: XCTestCase {
                 XCTAssertFalse(der.isNaN)
             }
         }
+        
+        let act = ActivationFunction.sigmoid
+        let range: ClosedRange<Double> = -1...1
         
     }
     
