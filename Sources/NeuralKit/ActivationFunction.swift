@@ -82,6 +82,7 @@ public struct ActivationFunction: Equatable {
         case sigmoid = 2
         case hyperTan = 3
         case step = 4
+        case silu = 5
     }
     
     // MARK: Initializers
@@ -133,6 +134,13 @@ public extension ActivationFunction {
      * For an input `x`, returns `x <= 0 ? 0 : 1`
      */
     static let step = ActivationFunction(identifier: .step)
+    
+    /**
+     * The sigmoid linear unit function
+     *
+     * For an input `x`, returns `x * sigmoid(x)`
+     */
+    static let silu = ActivationFunction(identifier: .silu)
     
     
 }
@@ -187,12 +195,18 @@ extension AFGroup {
     static let step = AFGroup { x in
         x <= 0 ? 0 : 1
     } derivative: { _ in 0 }
+    
+    static let silu = AFGroup { x in
+        x * _sig(x)
+    } derivative: { x in
+        _sig(x) + (x * _sigder(x))
+    }
 
     /**
      * The collection of all activation functions
      */
     static let activationFunctions: [AFGroup] = [
-        identity, relu, sigmoid, hyperTan, step
+        identity, relu, sigmoid, hyperTan, step, .silu
     ]
 
 }

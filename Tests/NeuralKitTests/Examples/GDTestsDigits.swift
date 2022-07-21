@@ -13,7 +13,7 @@ class GDTestsDigits: XCTestCase {
     
     func makeNetwork() -> NeuralNetwork {
         let shape = [784, 16, 16, 10]
-        let actFuncs: [ActivationFunction] = [.sigmoid, .sigmoid, .sigmoid]
+        let actFuncs: [ActivationFunction] = [.silu, .silu, .sigmoid]
         return NeuralNetwork(randomWithShape: shape, withBiases: false, activationFunctions: actFuncs)
     }
     
