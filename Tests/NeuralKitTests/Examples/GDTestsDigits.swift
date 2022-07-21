@@ -12,7 +12,9 @@ import MatrixKit
 class GDTestsDigits: XCTestCase {
     
     func makeNetwork() -> NeuralNetwork {
-        NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunction: .sigmoid)
+        let shape = [784, 16, 16, 10]
+        let actFuncs: [ActivationFunction] = [.silu, .silu, .sigmoid]
+        return NeuralNetwork(randomWithShape: shape, withBiases: false, activationFunctions: actFuncs)
     }
     
     let mnistDataSet = try! DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))

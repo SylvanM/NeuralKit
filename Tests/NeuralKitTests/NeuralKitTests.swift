@@ -9,24 +9,18 @@ final class NeuralKitTests: XCTestCase {
     func testReadWrite() {
         
         let shape = [2, 2, 1]
-        let actfunc = ActivationFunction.hyperTan
-        let net = NeuralNetwork.init(randomWithShape: Array(shape), activationFunction: actfunc)
+        let actfuncs: [ActivationFunction] = [.sigmoid, .sigmoid]
+        let net = NeuralNetwork.init(randomWithShape: Array(shape), activationFunctions: actfuncs)
         
         XCTAssertEqual(net.shape, shape)
         
         let encodedNet = net.encodedData
         
-        // make sure the activation function is encoded right
-        encodedNet.withUnsafeBytes { buffer in
-            let actCode = buffer.bindMemory(to: Int.self).baseAddress!.pointee
-            XCTAssertEqual(actCode, actfunc.identifier.rawValue)
-        }
-        
         let decodedNet = NeuralNetwork(data: encodedNet)
 
         XCTAssertEqual(net.weights, decodedNet.weights)
         XCTAssertEqual(net.biases, decodedNet.biases)
-        XCTAssertEqual(net.activationFunction, decodedNet.activationFunction)
+        XCTAssertEqual(net.activationFunctions, decodedNet.activationFunctions)
         
         // now try with a bunch of random ones
         
@@ -68,7 +62,7 @@ final class NeuralKitTests: XCTestCase {
         let simpleNetwork = NeuralNetwork(
             weights: [hWeights, yWeights],
             biases: [hBiases, yBiases],
-            activationFunction: .step
+            activationFunctions: [.step, .step]
         )
         
         XCTAssert(simpleNetwork.invariantSatisied)
@@ -94,7 +88,7 @@ final class NeuralKitTests: XCTestCase {
     
     func testFeedForward() throws {
         let mnistData = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
-        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunction: .sigmoid)
+        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunctions: [.relu, .relu, .sigmoid])
         
         mnistData.iterateTrainingData { item in
             let mnistItem = MNISTUtility.MNISTItem(item)
@@ -110,6 +104,25 @@ final class NeuralKitTests: XCTestCase {
             
             _ = digitsNetwork.cost(for: mnistItem)
         }
+    }
+    
+    func testActivationFunctions() throws {
+        let afs: [ActivationFunction] = [.identity, .sigmoid, .relu, .hyperTan, .step]
+    
+        for af in afs {
+            for _ in 0..<10000 {
+                let input: Double = .random(in: -10000...10000)
+                let output = af.compute(input)
+                let der = af.derivative(input)
+                
+                XCTAssertFalse(output.isNaN)
+                XCTAssertFalse(der.isNaN)
+            }
+        }
+        
+        let act = ActivationFunction.sigmoid
+        let range: ClosedRange<Double> = -1...1
+        
     }
     
 }

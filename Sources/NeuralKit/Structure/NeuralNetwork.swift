@@ -84,11 +84,13 @@ public class NeuralNetwork {
     }
     
     /**
-     * The activation function for the neural network.
+     * The activation functions for layers of this neural network.
      *
      * This function is the final step in the computation of the activations for a layer, after the weights and biases have been applied.
+     *
+     * - Invariant: `activationFunctions.count == biases.count`
      */
-    public var activationFunction: ActivationFunction
+    public var activationFunctions: [ActivationFunction]
     
     // MARK: Initializers
     
@@ -99,12 +101,12 @@ public class NeuralNetwork {
      *
      * - Parameter weights: The weights for the neural network
      * - Parameter biases: The biases for each activation layer other than the input layer.
-     * - Parameter activationFunction: The activation function for this neural network.
+     * - Parameter activationFunctions: The activation functions for this neural network.
      */
-    public init(weights: [Matrix], biases: [Matrix], activationFunction: ActivationFunction) {
+    public init(weights: [Matrix], biases: [Matrix], activationFunctions: [ActivationFunction]) {
         self.weights = weights
         self.biases = biases
-        self.activationFunction = activationFunction
+        self.activationFunctions = activationFunctions
     }
     
     /**
@@ -112,9 +114,9 @@ public class NeuralNetwork {
      *
      * - Parameter shape: An array describing the size of each layer. If `shape` is `[2, 2, 1]`, a neural network will be created with
      * 2 input nodes, one hidden layer with 2 nodes, and an output layer with 1 node.
-     * - Parameter activationFunction: The activation function for each node in the network
+     * - Parameter activationFunctions: The activation functions for each layer in the network
      */
-    public init(shape: Shape, activationFunction: ActivationFunction = .identity) {
+    public init(shape: Shape, activationFunctions: [ActivationFunction]) {
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
@@ -123,7 +125,7 @@ public class NeuralNetwork {
             biases[i] = Matrix(rows: shape[i + 1], cols: 1)
         }
         
-        self.activationFunction = activationFunction
+        self.activationFunctions = activationFunctions
     }
     
     /**
@@ -135,7 +137,7 @@ public class NeuralNetwork {
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunction: ActivationFunction, weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
+    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunctions: [ActivationFunction], weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
         
         weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
         biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
@@ -156,7 +158,7 @@ public class NeuralNetwork {
         }
         
         
-        self.activationFunction = activationFunction
+        self.activationFunctions = activationFunctions
     }
     
     /**
@@ -168,11 +170,15 @@ public class NeuralNetwork {
         var readAddress = buffer.baseAddress!
         let layerCount = NeuralNetwork.readInteger(from: &readAddress)
         
-        self.activationFunction = ActivationFunction(
-            identifier: ActivationFunction.Identifier(
-                rawValue: NeuralNetwork.readInteger(from: &readAddress)
-            )!
-        )
+        self.activationFunctions = [ActivationFunction](repeating: .identity, count: layerCount - 1)
+        
+        for i in 0..<activationFunctions.count {
+            activationFunctions[i] = ActivationFunction(
+                identifier: ActivationFunction.Identifier(
+                    rawValue: NeuralNetwork.readInteger(from: &readAddress)
+                )!
+            )
+        }
         
         self.weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
         self.biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
@@ -195,7 +201,7 @@ public class NeuralNetwork {
     public init(_ other: NeuralNetwork) {
         self.weights = other.weights
         self.biases = other.biases
-        self.activationFunction = other.activationFunction
+        self.activationFunctions = other.activationFunctions
     }
     
     /**
@@ -242,7 +248,7 @@ public class NeuralNetwork {
         for i in 0..<weights.count {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
-            currentLayer.applyToAll(activationFunction.apply)
+            currentLayer.applyToAll(activationFunctions[i].apply)
         }
         
         return currentLayer
@@ -264,7 +270,7 @@ public class NeuralNetwork {
         for i in 0..<weights.count {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
-            currentLayer.applyToAll(activationFunction.apply)
+            currentLayer.applyToAll(activationFunctions[i].apply)
             cache[i + 1] = currentLayer
         }
     }
@@ -288,7 +294,7 @@ public class NeuralNetwork {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
             beforeAdjustedCache[i] = currentLayer
-            currentLayer.applyToAll(activationFunction.apply)
+            currentLayer.applyToAll(activationFunctions[i].apply)
             cache[i + 1] = currentLayer
         }
     }
@@ -312,7 +318,7 @@ public class NeuralNetwork {
         for i in 0..<layer {
             currentLayer = weights[i] * currentLayer
             currentLayer.add(biases[i])
-            currentLayer.applyToAll(activationFunction.apply)
+            currentLayer.applyToAll(activationFunctions[i].apply)
         }
         
         return currentLayer
