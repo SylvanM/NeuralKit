@@ -273,7 +273,10 @@ public class NeuralNetwork {
         
         for i in 0..<weights.count {
             currentLayer = wbs[i] * currentLayer
-            currentLayer.applyToAll(activationFunctions[i].apply)
+            
+            // apply activation to everything except last constant 1
+            currentLayer[0..<(currentLayer.rowCount - 1), 0..<1] = currentLayer[0..<(currentLayer.rowCount - 1), 0..<1].applyingToAll(activationFunctions[i].compute)
+            
             cache[i + 1] = currentLayer
         }
     }
@@ -296,7 +299,10 @@ public class NeuralNetwork {
         for i in 0..<weights.count {
             currentLayer = wbs[i] * currentLayer
             beforeAdjustedCache[i] = currentLayer
-            currentLayer.applyToAll(activationFunctions[i].apply)
+            
+            // apply activation to everything except last constant 1
+            currentLayer[0..<(currentLayer.rowCount - 1), 0..<1] = currentLayer[0..<(currentLayer.rowCount - 1), 0..<1].applyingToAll(activationFunctions[i].compute)
+            
             cache[i + 1] = currentLayer
         }
     }

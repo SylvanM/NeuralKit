@@ -64,6 +64,8 @@ public class GradientDescent {
      */
     public func computeGradients(forExample example: DataSet.Item, gradients: inout [Matrix]) {
         
+        assert(network.invariantSatisied)
+        
         // all the comments here are to keep things straight in my mind, because there's a lot of
         // room to make an off-by-one error here.
         
@@ -83,9 +85,17 @@ public class GradientDescent {
         // The cost gradient for the last layer, in activation space
         var costGradient = activations.last!
         
+        print("Output Activations:")
+        print(costGradient)
+        
         // Derivative of cost function
         costGradient -= example.output
         costGradient *= 2
+        
+        print("Output gradient:")
+        print(costGradient)
+        
+        
         
         // compute all the derivatives at the pre-activated neuron value (before act. func. applied)
         for i in 0..<derivatives.count {
@@ -111,6 +121,12 @@ public class GradientDescent {
             for i in 0..<gradients.count {
                 gradients[i].normalize()
             }
+        }
+        
+        print("Now printing gradients for all wbs:")
+        
+        for gradient in gradients {
+            print(gradient)
         }
     }
     
@@ -145,8 +161,8 @@ public class GradientDescent {
             // I still have no idea why this makes sense, because in theory we should be subtracting the gradient,
             // so clearly I got a sign flipped somewhere but I cannot find it, and this seems to work.
             
-            network.wbs[i].subtract(learningRate * gradients[i])
-//            network.wbs[i].add(learningRate * gradients[i])
+//            network.wbs[i].subtract(learningRate * gradients[i])
+            network.wbs[i].add(learningRate * gradients[i])
         
         }
     }
