@@ -57,14 +57,12 @@ public class GradientDescent {
      *
      * This is just backpropogation for the weights.
      *
-     * - Parameter example: The training example to compute the gradient for
-     * - Parameter weightGradients: The array of weight gradients to be "filled" by this function
-     * - Parameter biasGradients: The array of bias gradients to be computed by this function
+     * - Parameter example: The training example to compute the gradient for, with this input already adjusted to comply with the weight-bias form
+     * - Parameter gradients: The array of gradients to be "filled" by this function
      *
-     * - Precondition: `weightGradients.count == network.weights.count`
-     * - Precondition: `biasGradients.count == network.baises.count`
+     * - Precondition: `gradients.count == network.wbs.count`
      */
-    public func computeGradients(forExample example: DataSet.Item, weightGradients: inout [Matrix], biasGradients: inout [Matrix]) {
+    public func computeGradients(forExample example: DataSet.Item, gradients: inout [Matrix]) {
         
         // all the comments here are to keep things straight in my mind, because there's a lot of
         // room to make an off-by-one error here.
@@ -80,7 +78,7 @@ public class GradientDescent {
         // like the derivatives array.
         var partials = derivatives
         
-        network.feedForward(input: example.input, cache: &activations, beforeAdjustedCache: &derivatives)
+        network.rawFeedForward(input: example.input, cache: &activations, beforeAdjustedCache: &derivatives)
         
         // The cost gradient for the last layer, in activation space
         var costGradient = activations.last!
@@ -96,7 +94,7 @@ public class GradientDescent {
         
         // compute the partials and gradient for the last layer so the rest are easy
         partials[partials.count - 1] = derivatives[derivatives.count - 1].hadamard(with: costGradient)
-        weightGradients[weightGradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
+        gradients[gradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
         
         // biases are no different than a weight with a constant input of one
         
@@ -105,32 +103,30 @@ public class GradientDescent {
             network: network,
             activations: &activations,
             derivatives: &derivatives,
-            weightGradients: &weightGradients,
-            biasGradients: &biasGradients,
+            gradients: &gradients,
             partials: &partials
         )
         
         if shouldNormalizeGradient {
-            for i in 0..<weightGradients.count {
-                weightGradients[i].normalize()
+            for i in 0..<gradients.count {
+                gradients[i].normalize()
             }
         }
     }
     
-    private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partials: inout [Matrix]) {
+    private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], gradients: inout [Matrix], partials: inout [Matrix]) {
         if layer < 0 { return }
         
-        partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
-        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
+        partials[layer] = derivatives[layer].hadamard(with: network.wbs[layer + 1].transpose * partials[layer + 1])
+        gradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
         
         backprop(
             layer: layer - 1,
-             network: network,
-             activations: &activations,
-             derivatives: &derivatives,
-             weightGradients: &weightGradients,
-             biasGradients: &biasGradients,
-             partials: &partials
+            network: network,
+            activations: &activations,
+            derivatives: &derivatives,
+            gradients: &gradients,
+            partials: &partials
         )
     }
     
@@ -138,21 +134,19 @@ public class GradientDescent {
      * Applies one step of gradient descent to the weights of a neural network
      */
     public func performStep(forExample example: DataSet.Item) {
-        var weightGradients = network.weights.map { $0.zero }
-        var biasGradients   = network.biases.map  { $0.zero }
-    
-        computeGradients(forExample: example, weightGradients: &weightGradients, biasGradients: &biasGradients)
+        var gradients = network.weights.map { $0.zero }
         
-        for i in 0..<weightGradients.count {
+        let adjustedForLearning = DataSet.Item(input: example.input.bottomConcatenating([[1]]), output: example.output.bottomConcatenating([[1]]))
+    
+        computeGradients(forExample: adjustedForLearning, gradients: &gradients)
+        
+        for i in 0..<gradients.count {
             
             // I still have no idea why this makes sense, because in theory we should be subtracting the gradient,
             // so clearly I got a sign flipped somewhere but I cannot find it, and this seems to work.
             
-//            network.weights[i].subtract(learningRate * weightGradients[i])
-            network.weights[i].add(learningRate * weightGradients[i])
-            
-//            network.biases[i].subtract(learningRate * biasGradients[i])
-            network.biases[i].add(learningRate * biasGradients[i])
+//            network.wbs[i].subtract(learningRate * gradients[i])
+            network.wbs[i].add(learningRate * gradients[i])
         
         }
     }

@@ -88,12 +88,12 @@ final class NeuralKitTests: XCTestCase {
     
     func testFeedForward() throws {
         let mnistData = try DataSet(name: "Digits", inDirectory: URL(fileURLWithPath: "/Users/sylvanm/Programming/Machine Learning/Data sets/NKDS Sets/MNIST Digits"))
-        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], withBiases: false, activationFunctions: [.relu, .relu, .sigmoid])
+        let digitsNetwork = NeuralNetwork(randomWithShape: [784, 16, 16, 10], activationFunctions: [.relu, .relu, .sigmoid])
         
         mnistData.iterateTrainingData { item in
             let mnistItem = MNISTUtility.MNISTItem(item)
             var activations = [Matrix](repeating: Matrix(), count: digitsNetwork.layerCount)
-            digitsNetwork.feedForward(input: mnistItem.input, cache: &activations)
+            digitsNetwork.rawFeedForward(input: mnistItem.input, cache: &activations)
             
             activations.forEach { activationVector in
                 activationVector.forEach {

@@ -16,6 +16,9 @@ import MatrixKit
  * This is an unsafe data type. What I mean by that is I am not practicing the usual industry standard of encapsulation. I am delibrerately
  * exposing some parts of implementation and allowing the weights and biases to be directly modified. It is my philosophy
  * that in uses like these, more control to the user is better.
+ *
+ * The weights and biases of a network are represented in a bit of a bespoke way. (At least I think so, I haven't seen this kind of representation before.)
+ * Weights and baises of a single layer are combined into one matrix, instead of being stored as a matrix and vector separately.
  */
 public class NeuralNetwork {
     
@@ -24,29 +27,19 @@ public class NeuralNetwork {
     // MARK: Properties
     
     /**
-     * The weight matrices for each layer of the neural network
+     * The true representation of the weights and biases of this network.
      *
-     * - Invariant: For all `i` in `0..<(weights.count - 1)`, `weights[i + 1].colCount == weights[i].rowCount`. In other words,
+     * - Invariant: For all `i` in `0..<(wbs.count - 1)`, `wbs[i + 1].colCount == wbs[i].rowCount`. In other words,
      * these matrices can be successively left-multiplied.
+     * - Invariant: For all `wb` in `wbs`, The bottom row of `wb` consists of only zeros, except for the furthest right entry, which is a `1`.
      */
-    public var weights: [Matrix]
-    
-    /**
-     * Bias vectors for each layer of the neural network, excluding the first layer.
-     *
-     * If this is null, the network's computation is only based on the weights.
-     *
-     * - Invariant: `biases.count == weights.count`
-     * - Invariant: For all `i` in `0..<biases.count`, `biases[i].colCount == 1`
-     * and `biases[i].rowCount == weights[i].rowCount`
-     */
-    public var biases: [Matrix]
+    public var wbs: [Matrix]
     
     /**
      * The number of layers in this neural network, including the input and output layer
      */
     public var layerCount: Int {
-        weights.count + 1
+        wbs.count + 1
     }
     
     /**
@@ -57,25 +50,29 @@ public class NeuralNetwork {
      * to the client. So, I've made this property public as well, so that the client can verify it if they so choose.
      */
     public var invariantSatisied: Bool {
-        if biases.count != weights.count {
-            print("Unequal amount of weights and biases")
-            return false
-        }
         
-        for i in 0..<(weights.count - 1) {
-            if weights[i + 1].colCount != weights[i].rowCount {
-                print("Invalid weight dimensions")
+        for wb in wbs {
+            let bottomZeros = wb[(wb.rowCount - 1)..<(wb.rowCount), 0..<(wb.colCount - 1)].allSatisfy { $0.isZero }
+            let cornerOne = wb[wb.rowCount - 1, wb.colCount - 1] == 1
+            
+            if !(bottomZeros && cornerOne) {
+                print("Invalid weight-bias form")
+                return false
+            }
+            
+            // make sure no elements are NaN or Inf
+            let anyNan = wb.contains { $0.isNaN }
+            let anyInf = wb.contains { $0.isInfinite }
+            
+            if anyNan || anyInf {
+                print("Contains NaN or Inf in weight-biases")
                 return false
             }
         }
         
-        for i in 0..<biases.count {
-            if biases[i].colCount != 1 {
-                print("Biases aren't vectors")
-                return false
-            }
-            if biases[i].rowCount != weights[i].rowCount {
-                print("Invalid bias dimension: expected \(weights[i].rowCount) but got \(biases[i].rowCount)")
+        for i in 0..<(wbs.count - 1) {
+            if wbs[i + 1].colCount != wbs[i].rowCount {
+                print("Invalid weight-bias matrix dimensions")
                 return false
             }
         }
@@ -92,6 +89,22 @@ public class NeuralNetwork {
      */
     public var activationFunctions: [ActivationFunction]
     
+    // MARK: Convenience Accessors
+    
+    /**
+     * The weight matrices of this network
+     */
+    public var weights: [Matrix] {
+        wbs.map(NeuralNetwork.unwrap).map { $0.weights }
+    }
+    
+    /**
+     * The bias vectors of this network
+     */
+    public var biases: [Matrix] {
+        wbs.map(NeuralNetwork.unwrap).map { $0.biases }
+    }
+    
     // MARK: Initializers
     
     /**
@@ -104,8 +117,7 @@ public class NeuralNetwork {
      * - Parameter activationFunctions: The activation functions for this neural network.
      */
     public init(weights: [Matrix], biases: [Matrix], activationFunctions: [ActivationFunction]) {
-        self.weights = weights
-        self.biases = biases
+        self.wbs = zip(weights, biases).map(NeuralNetwork.combine)
         self.activationFunctions = activationFunctions
     }
     
@@ -116,49 +128,42 @@ public class NeuralNetwork {
      * 2 input nodes, one hidden layer with 2 nodes, and an output layer with 1 node.
      * - Parameter activationFunctions: The activation functions for each layer in the network
      */
-    public init(shape: Shape, activationFunctions: [ActivationFunction]) {
-        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
+    public convenience init(shape: Shape, activationFunctions: [ActivationFunction]) {
+        var weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        var biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
         for i in 0..<(shape.count - 1) {
             weights[i] = Matrix(rows: shape[i + 1], cols: shape[i])
             biases[i] = Matrix(rows: shape[i + 1], cols: 1)
         }
         
-        self.activationFunctions = activationFunctions
+        self.init(weights: weights, biases: biases, activationFunctions: activationFunctions)
     }
     
     /**
      * Creates a neural network with random weights and biases, with a certain network dimension.
      *
      * - Parameter shape: See the documentation for `init(shape: [Int])`
-     * - Parameter shouldIncludeBiases: If `false`, this network will only compute with weights, biases will be all set to zero.
      * - Parameter activationFunction: The activation function for the random network
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunctions: [ActivationFunction], weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
+    public convenience init(randomWithShape shape: Shape, activationFunctions: [ActivationFunction], weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
         
-        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        var weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        var biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
         
         for i in 0..<weights.count {
             weights[i] = Matrix.random(rows: shape[i + 1], cols: shape[i], range: weightRange)
         }
         
-        if shouldIncludeBiases {
-            for i in 0..<biases.count {
-                biases[i] = Matrix.random(rows: shape[i + 1], cols: 1, range: biasRange)
-            }
-        } else {
-            for i in 0..<biases.count {
-                biases[i] = Matrix(rows: shape[i + 1], cols: 1)
-            }
+        for i in 0..<biases.count {
+            biases[i] = Matrix.random(rows: shape[i + 1], cols: 1, range: biasRange)
         }
         
         
-        self.activationFunctions = activationFunctions
+        self.init(weights: weights, biases: biases, activationFunctions: activationFunctions)
     }
     
     /**
@@ -166,11 +171,11 @@ public class NeuralNetwork {
      *
      * - Parameter buffer: The buffer of data to decode
      */
-    init(buffer: UnsafeRawBufferPointer) {
+    convenience init(buffer: UnsafeRawBufferPointer) {
         var readAddress = buffer.baseAddress!
         let layerCount = NeuralNetwork.readInteger(from: &readAddress)
         
-        self.activationFunctions = [ActivationFunction](repeating: .identity, count: layerCount - 1)
+        var activationFunctions = [ActivationFunction](repeating: .identity, count: layerCount - 1)
         
         for i in 0..<activationFunctions.count {
             activationFunctions[i] = ActivationFunction(
@@ -180,8 +185,8 @@ public class NeuralNetwork {
             )
         }
         
-        self.weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
-        self.biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        var weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        var biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
         
         for i in 0..<weights.count {
             weights[i] = Matrix.unsafeRead(from: &readAddress)
@@ -191,6 +196,8 @@ public class NeuralNetwork {
             biases[i] = Matrix.unsafeRead(from: &readAddress)
         }
         
+        self.init(weights: weights, biases: biases, activationFunctions: activationFunctions)
+        
     }
     
     /**
@@ -199,8 +206,7 @@ public class NeuralNetwork {
      * - Parameter other: Another neural network to copy
      */
     public init(_ other: NeuralNetwork) {
-        self.weights = other.weights
-        self.biases = other.biases
+        self.wbs = other.wbs
         self.activationFunctions = other.activationFunctions
     }
     
@@ -243,33 +249,30 @@ public class NeuralNetwork {
      * - Returns: The vector representing the activations of the output layer after the network feeds forward the input layer.
      */
     public func computeOutputLayer(forInput input: Matrix) -> Matrix {
-        var currentLayer = input
+        let adjustedInput = input.bottomConcatenating([[1]])
         
-        for i in 0..<weights.count {
-            currentLayer = weights[i] * currentLayer
-            currentLayer.add(biases[i])
-            currentLayer.applyToAll(activationFunctions[i].apply)
-        }
+        var outLayers = [Matrix](repeating: Matrix(), count: layerCount)
+        rawFeedForward(input: adjustedInput, cache: &outLayers)
         
-        return currentLayer
+        return outLayers.last![0..<(outLayers.last!.rowCount - 1), 0..<1]
     }
     
     /**
-     * Computes the activations for each layer for some input to this neural network
+     * Computes the activations for each layer for some input to this neural network, including the additional `1` activation at the bottom
+     * of each activation vector.
      *
-     * - Parameter input: The input vector
-     * - Parameter cache: The list of activations
+     * - Parameter input: The input vector, including the additional `1` at the bottom.
+     * - Parameter cache: The list of raw activations
      *
      * - Precondition: `cache.count == layerCount`
-     * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
+     * - Precondition: `input.colCount == 1 && input.count == wbs[0].colCount`
      */
-    public func feedForward(input: Matrix, cache: inout [Matrix]) {
+    internal func rawFeedForward(input: Matrix, cache: inout [Matrix]) {
         var currentLayer = input
         cache[0] = input
         
         for i in 0..<weights.count {
-            currentLayer = weights[i] * currentLayer
-            currentLayer.add(biases[i])
+            currentLayer = wbs[i] * currentLayer
             currentLayer.applyToAll(activationFunctions[i].apply)
             cache[i + 1] = currentLayer
         }
@@ -286,13 +289,12 @@ public class NeuralNetwork {
      * - Precondition: `beforeAdjustedCache.count == layerCount - 1`
      * - Precondition: `input.colCount == 1 && input.count == weights[0].colCount`
      */
-    public func feedForward(input: Matrix, cache: inout [Matrix], beforeAdjustedCache: inout [Matrix]) {
+    internal func rawFeedForward(input: Matrix, cache: inout [Matrix], beforeAdjustedCache: inout [Matrix]) {
         var currentLayer = input
         cache[0] = input
         
         for i in 0..<weights.count {
-            currentLayer = weights[i] * currentLayer
-            currentLayer.add(biases[i])
+            currentLayer = wbs[i] * currentLayer
             beforeAdjustedCache[i] = currentLayer
             currentLayer.applyToAll(activationFunctions[i].apply)
             cache[i + 1] = currentLayer
@@ -308,20 +310,6 @@ public class NeuralNetwork {
      */
     public func cost(for example: DataSet.Item) -> Double {
         computeOutputLayer(forInput: example.input).distanceSquared(from: example.output)
-    }
-    
-    // MARK: Internal Helpers
-    
-    internal func compute(layer: Int, forInput input: Matrix) -> Matrix {
-        var currentLayer = input
-        
-        for i in 0..<layer {
-            currentLayer = weights[i] * currentLayer
-            currentLayer.add(biases[i])
-            currentLayer.applyToAll(activationFunctions[i].apply)
-        }
-        
-        return currentLayer
     }
     
 }

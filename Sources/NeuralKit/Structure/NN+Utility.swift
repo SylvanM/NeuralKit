@@ -10,13 +10,34 @@ import MatrixKit
 
 public extension NeuralNetwork {
     
+    // MARK: Form Conversion
+    
+    /**
+     * Combines a weight matrix and bias vector into one "weight-bias" matrix
+     */
+    static func combine(weights: Matrix, biases: Matrix) -> Matrix {
+        weights.sideConcatenating(biases).bottomConcatenating(
+            Matrix([Matrix.Element](repeating: 0, count: weights.colCount) + [1])
+        )
+    }
+    
+    /**
+     * Unwraps a weight-bias matrix into a weight matrix and bias vector
+     */
+    static func unwrap(weightBias: Matrix) -> (weights: Matrix, biases: Matrix) {
+        (
+            weights: weightBias[0..<(weightBias.rowCount - 1), 0..<(weightBias.colCount - 1)],
+            biases: weightBias[0..<(weightBias.rowCount - 1), (weightBias.colCount - 1)..<weightBias.colCount]
+        )
+    }
+    
     // MARK: Shape
     
     /**
      * Reports the shape of this neural network
      */
     var shape: Shape {
-        [weights[0].colCount] + weights.map { $0.rowCount }
+        [wbs[0].colCount - 1] + wbs.map { $0.rowCount - 1 }
     }
     
     // MARK: Encoding and Decoding
