@@ -13,7 +13,7 @@ class GDTestsDigits: XCTestCase {
     
     func makeNetwork() -> NeuralNetwork {
         let shape = [784, 16, 16, 10]
-        let actFuncs: [ActivationFunction] = [.silu, .silu, .sigmoid]
+        let actFuncs: [ActivationFunction] = [.sigmoid, .sigmoid, .sigmoid]
         return NeuralNetwork(randomWithShape: shape, withBiases: false, activationFunctions: actFuncs)
     }
     
@@ -71,9 +71,7 @@ class GDTestsDigits: XCTestCase {
             
             if label == computed {
                 correct += 1
-            }
-            
-            if counter % (1000 + Int.random(in: -5...5)) == 0 {
+            } else {
                 print("Training Example \(counter):")
                 print(MNISTUtility.MNISTItem(item))
                 print("Network says: \(computed)")
