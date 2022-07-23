@@ -145,8 +145,8 @@ public class GradientDescent {
             // I still have no idea why this makes sense, because in theory we should be subtracting the gradient,
             // so clearly I got a sign flipped somewhere but I cannot find it, and this seems to work.
             
-//            network.wbs[i].subtract(learningRate * gradients[i])
-            network.wbs[i].add(learningRate * gradients[i])
+            network.wbs[i].subtract(learningRate * gradients[i])
+//            network.wbs[i].add(learningRate * gradients[i])
         
         }
     }
