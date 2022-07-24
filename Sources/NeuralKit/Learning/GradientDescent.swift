@@ -35,6 +35,11 @@ public class GradientDescent {
      */
     public var learningRate: Double
     
+    /**
+     * `true` if the biases should be optimized
+     */
+    public var shouldOptimizeBiases: Bool
+    
     // MARK: Initializers
     
     /**
@@ -45,11 +50,12 @@ public class GradientDescent {
      * - Parameter learningRate: The learning rate (sorry)
      * - Parameter shouldNormalizeGradient: If `true`, the computed gradient will be normalized
      */
-    public init(for network: NeuralNetwork, usingDataSet dataSet: DataSet, learningRate: Double, shouldNormalizeGradient: Bool = true) {
+    public init(for network: NeuralNetwork, usingDataSet dataSet: DataSet, learningRate: Double, shouldNormalizeGradient: Bool = true, shouldOptimizeBiases: Bool = true) {
         self.network = network
         self.dataSet = dataSet
         self.learningRate = learningRate
         self.shouldNormalizeGradient = shouldNormalizeGradient
+        self.shouldOptimizeBiases = shouldOptimizeBiases
     }
     
     /**
@@ -98,7 +104,7 @@ public class GradientDescent {
         partials[partials.count - 1] = derivatives[derivatives.count - 1].hadamard(with: costGradient)
         weightGradients[weightGradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
         
-        // biases are no different than a weight with a constant input of one
+        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
         
         backprop(
             layer: partials.count - 2,
@@ -110,9 +116,13 @@ public class GradientDescent {
             partials: &partials
         )
         
+        // WHAT IS THIS
+        biasGradients = partials
+        
         if shouldNormalizeGradient {
             for i in 0..<weightGradients.count {
                 weightGradients[i].normalize()
+                biasGradients[i].normalize()
             }
         }
     }
@@ -122,6 +132,8 @@ public class GradientDescent {
         
         partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
         weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
+        
+        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
         
         backprop(
             layer: layer - 1,
@@ -151,9 +163,11 @@ public class GradientDescent {
 //            network.weights[i].subtract(learningRate * weightGradients[i])
             network.weights[i].add(learningRate * weightGradients[i])
             
-//            network.biases[i].subtract(learningRate * biasGradients[i])
-            network.biases[i].add(learningRate * biasGradients[i])
-        
+            if shouldOptimizeBiases {
+//                network.biases[i].subtract(learningRate * biasGradients[i])
+                network.biases[i].add(learningRate * biasGradients[i])
+            }
+
         }
     }
     
