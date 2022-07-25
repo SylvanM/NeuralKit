@@ -104,7 +104,7 @@ public class GradientDescent {
         partials[partials.count - 1] = derivatives[derivatives.count - 1].hadamard(with: costGradient)
         weightGradients[weightGradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
         
-        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
+        biasGradients[biasGradients.count - 1] = partials[partials.count - 1]
         
         backprop(
             layer: partials.count - 2,
@@ -115,9 +115,6 @@ public class GradientDescent {
             biasGradients: &biasGradients,
             partials: &partials
         )
-        
-        // WHAT IS THIS
-        biasGradients = partials
         
         if shouldNormalizeGradient {
             for i in 0..<weightGradients.count {
@@ -133,7 +130,7 @@ public class GradientDescent {
         partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
         weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
         
-        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
+        biasGradients[biasGradients.count - 1] = partials[layer]
         
         backprop(
             layer: layer - 1,
