@@ -82,10 +82,6 @@ public class GradientDescent {
         // derivatives[i] refers to the derivative vector for the (i + 1)-th layer
         var derivatives = [Matrix](repeating: Matrix(), count: network.layerCount - 1)
         
-        // these partial activations are the input to the activation function for each layer EXCEPT the first one,
-        // like the derivatives array.
-        var partials = derivatives
-        
         network.feedForward(input: example.input, cache: &activations, beforeAdjustedCache: &derivatives)
         
         // The cost gradient for the last layer, in activation space
@@ -100,24 +96,17 @@ public class GradientDescent {
             derivatives[i].applyToAll(network.activationFunctions[i].applyDerivative)
         }
         
-        // compute the partials and gradient for the last layer so the rest are easy
-        partials[partials.count - 1] = derivatives[derivatives.count - 1].hadamard(with: costGradient)
-        weightGradients[weightGradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
-        
-        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
+        var originalPartial = derivatives[derivatives.count - 1].hadamard(with: costGradient)
         
         backprop(
-            layer: partials.count - 2,
+            layer: derivatives.count - 1,
             network: network,
             activations: &activations,
             derivatives: &derivatives,
             weightGradients: &weightGradients,
             biasGradients: &biasGradients,
-            partials: &partials
+            partial: &originalPartial
         )
-        
-        // WHAT IS THIS
-        biasGradients = partials
         
         if shouldNormalizeGradient {
             for i in 0..<weightGradients.count {
@@ -127,22 +116,34 @@ public class GradientDescent {
         }
     }
     
-    private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partials: inout [Matrix]) {
+    /**
+     * - Parameter layer: The layer to write to
+     * - Parameter network: The network to use
+     * - Parameter activations: The activations of layer `layer`
+     * - Parameter derivatives: The derivatives of the activations for layer `layer`
+     * - Parameter weightGradients: The weight gradients to write
+     * - Parameter biasGradients: The bias gradients to write
+     * - Parameter partial: The partial derivative to use in this layer's calculation
+     */
+    private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partial: inout Matrix) {
         if layer < 0 { return }
         
-        partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
-        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
+        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partial)
         
-        biasGradients[biasGradients.count - 1] = weightGradients.last!.rowSum()
+        biasGradients[layer] = partial
+        
+        if layer > 0 {
+            partial = derivatives[layer - 1].hadamard(with: network.weights[layer].transpose * partial)
+        }
         
         backprop(
             layer: layer - 1,
-             network: network,
-             activations: &activations,
-             derivatives: &derivatives,
-             weightGradients: &weightGradients,
-             biasGradients: &biasGradients,
-             partials: &partials
+            network: network,
+            activations: &activations,
+            derivatives: &derivatives,
+            weightGradients: &weightGradients,
+            biasGradients: &biasGradients,
+            partial: &partial
         )
     }
     

@@ -24,15 +24,15 @@ class SGDTest: XCTestCase {
     override func run() {
         print("----------------------------------------------------------------")
         
-        let preOptCost = dataSet.testingCost(of: network)
+        let preOptCost = dataSet.trainingCost(of: network)
         
         print(name)
-        print("Initial testing cost: \(preOptCost)")
+        print("Initial training cost: \(preOptCost)")
         
         let optimizer = GradientDescent(for: network, usingDataSet: dataSet, learningRate: learningRate, shouldOptimizeBiases: shouldOptimizeBiases)
         optimizer.optimize()
         
-        print("Final cost: \(dataSet.testingCost(of: network))")
+        print("Final cost: \(dataSet.trainingCost(of: network))")
     }
     
     
