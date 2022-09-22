@@ -30,7 +30,10 @@ class SGDTest: XCTestCase {
         print("Initial training cost: \(preOptCost)")
         
         let optimizer = GradientDescent(for: network, usingDataSet: dataSet, learningRate: learningRate, shouldOptimizeBiases: shouldOptimizeBiases)
-        optimizer.optimize()
+        
+        for _ in 1...5 {
+            optimizer.optimize()
+        }
         
         print("Final cost: \(dataSet.trainingCost(of: network))")
     }

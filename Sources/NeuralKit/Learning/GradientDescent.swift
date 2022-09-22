@@ -157,18 +157,11 @@ public class GradientDescent {
         computeGradients(forExample: example, weightGradients: &weightGradients, biasGradients: &biasGradients)
         
         for i in 0..<weightGradients.count {
-            
-            // I still have no idea why this makes sense, because in theory we should be subtracting the gradient,
-            // so clearly I got a sign flipped somewhere but I cannot find it, and this seems to work.
-            
-//            network.weights[i].subtract(learningRate * weightGradients[i])
             network.weights[i].add(learningRate * weightGradients[i])
             
             if shouldOptimizeBiases {
-//                network.biases[i].subtract(learningRate * biasGradients[i])
                 network.biases[i].add(learningRate * biasGradients[i])
             }
-
         }
     }
     
