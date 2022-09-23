@@ -1,6 +1,6 @@
 //
 //  GradientDescent.swift
-//  
+//
 //
 //  Created by Sylvan Martin on 7/12/22.
 //
@@ -96,11 +96,7 @@ public class GradientDescent {
             derivatives[i].applyToAll(network.activationFunctions[i].applyDerivative)
         }
         
-        // compute the partials and gradient for the last layer so the rest are easy
-        partials[partials.count - 1] = derivatives[derivatives.count - 1].hadamard(with: costGradient)
-        weightGradients[weightGradients.count - 1] = partials[partials.count - 1] * activations[activations.count - 2].transpose
-        
-        biasGradients[biasGradients.count - 1] = partials[partials.count - 1]
+        var originalPartial = derivatives[derivatives.count - 1].hadamard(with: costGradient)
         
         backprop(
             layer: derivatives.count - 1,
@@ -132,10 +128,13 @@ public class GradientDescent {
     private func backprop(layer: Int, network: NeuralNetwork, activations: inout [Matrix], derivatives: inout [Matrix], weightGradients: inout [Matrix], biasGradients: inout [Matrix], partial: inout Matrix) {
         if layer < 0 { return }
         
-        partials[layer] = derivatives[layer].hadamard(with: network.weights[layer + 1].transpose * partials[layer + 1])
-        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partials[layer])
+        weightGradients[layer] = activations[layer].transpose.leftMultiply(by: partial)
         
-        biasGradients[biasGradients.count - 1] = partials[layer]
+        biasGradients[layer] = partial
+        
+        if layer > 0 {
+            partial = derivatives[layer - 1].hadamard(with: network.weights[layer].transpose * partial)
+        }
         
         backprop(
             layer: layer - 1,
