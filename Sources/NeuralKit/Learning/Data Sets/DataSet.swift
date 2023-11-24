@@ -49,6 +49,10 @@ open class DataSet {
     public let directory: URL
     
     /**
+     *
+     */
+    
+    /**
      * The file path for the training items
      */
     private var trainingFileURL: URL {
@@ -195,7 +199,7 @@ open class DataSet {
      * - Returns: The average cost for each testing item
      */
     public func trainingCost(of network: NeuralNetwork) -> Double {
-        averageCost(of: network, iterating: iterateTrainingData, count: Double(trainingItemsCount))
+        averageCost(of: network, iterating: iterateTrainingData, count: trainingItemsCount)
     }
     
     /**
@@ -206,15 +210,17 @@ open class DataSet {
      * - Returns: The average cost for each testing item.
      */
     public func testingCost(of network: NeuralNetwork) -> Double {
-        averageCost(of: network, iterating: iterateTestingData, count: Double(testingItemsCount))
+        averageCost(of: network, iterating: iterateTestingData, count: testingItemsCount)
     }
     
-    private func averageCost(of network: NeuralNetwork, iterating: ((Item) -> ()) -> (), count: Double) -> Double {
+    private func averageCost(of network: NeuralNetwork, iterating: ((Item) -> ()) -> (), count: Int) -> Double {
         var average: Double = 0
+        
+        let doubleCount = Double(count)
         
         iterating { item in
             let cost = network.cost(for: item)
-            average += cost / count
+            average += cost / doubleCount
         }
         
         return average

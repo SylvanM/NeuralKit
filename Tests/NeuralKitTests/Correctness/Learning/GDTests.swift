@@ -11,6 +11,22 @@ import MatrixKit
 
 class GDTests: XCTestCase {
     
+    func testXOR() {
+        // We're gonna make a neural network and train it!
+        
+        let dataSet = DataSet.xor
+        
+        let network = NeuralNetwork(randomWithShape: [2, 2, 1], withBiases: false, activationFunctions: [.sigmoid, .sigmoid])
+        
+        let optimizer = GradientDescent(for: network, usingDataSet: dataSet, learningRate: 1)
+        
+        optimizer.optimize(epochs: 5)
+        
+        print("Finished optimization!")
+        
+        print("Cost: \(dataSet.testingCost(of: network))")
+    }
+    
     func testDigits() {
         
         // We're gonna make a neural network and train it!

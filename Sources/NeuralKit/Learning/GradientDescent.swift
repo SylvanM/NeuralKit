@@ -166,13 +166,24 @@ public class GradientDescent {
     }
     
     /**
-     * Applies a step of backpropogation for every training item in a data set
+     * Optimizes the network using a given number of training epochs
+     *
+     * - Parameter epochs: The number of times to iterate through the training data set
      */
-    public func optimize() {
-        dataSet.iterateTrainingData {
-            performStep(forExample: $0)
+    public func optimize(epochs: Int = 1) {
+        print("Beginning optimization with \(epochs) epochs")
+        
+        for epoch in 1...epochs {
+            var progress = 0
+            dataSet.iterateTrainingData {
+                performStep(forExample: $0)
+                progress += 1
+                
+                
+                
+                print("Epoch \(epoch)/\(epochs): Computed \(progress)/\(dataSet.trainingItemsCount)", terminator: "\r")
+            }
         }
     }
-    
     
 }
