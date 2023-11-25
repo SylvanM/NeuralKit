@@ -24,23 +24,40 @@ public class NeuralNetwork {
     // MARK: Properties
     
     /**
-     * The weight matrices for each layer of the neural network
-     *
-     * - Invariant: For all `i` in `0..<(weights.count - 1)`, `weights[i + 1].colCount == weights[i].rowCount`. In other words,
-     * these matrices can be successively left-multiplied.
+     * Internal representation of the neural network, using the trick where the biases are represented by just having a constant "one" as the value for the bottom of
+     * each layer
      */
-    public var weights: [Matrix]
+    private var parameters: [Matrix]
     
     /**
-     * Bias vectors for each layer of the neural network, excluding the first layer.
-     *
-     * If this is null, the network's computation is only based on the weights.
-     *
-     * - Invariant: `biases.count == weights.count`
-     * - Invariant: For all `i` in `0..<biases.count`, `biases[i].colCount == 1`
-     * and `biases[i].rowCount == weights[i].rowCount`
+     * The weight matrices for each layer of the neural network
      */
-    public var biases: [Matrix]
+    public var weights: [Matrix] {
+        get {
+            parameters.map { parameterMatrix in
+                parameterMatrix[rows: 0..<parameterMatrix.rowCount, cols: 0..<(parameterMatrix.rowCount - 1)]
+            }
+        } set {
+            for i in 0..<newValue.count {
+                parameters[i][rows: 0..<newValue[i].rowCount, cols: 0..<newValue[i].colCount] = newValue[i]
+            }
+        }
+    }
+    
+    /**
+     * The biases of each layer of the neural network
+     */
+    public var biases: [Matrix] {
+        get {
+            parameters.map { parameterMatrix in
+                parameterMatrix[rows: 0..<parameterMatrix.rowCount, cols: (parameterMatrix.colCount - 1)..<parameterMatrix.colCount]
+            }
+        } set {
+            for i in 0..<newValue.count {
+                parameters[i][rows: 0..<newValue[i].rowCount, cols: (newValue[i].colCount - 1)..<newValue[i].colCount] = newValue[i]
+            }
+        }
+    }
     
     /**
      * The number of layers in this neural network, including the input and output layer
@@ -104,8 +121,11 @@ public class NeuralNetwork {
      * - Parameter activationFunctions: The activation functions for this neural network.
      */
     public init(weights: [Matrix], biases: [Matrix], activationFunctions: [ActivationFunction]) {
-        self.weights = weights
-        self.biases = biases
+       
+        self.parameters = zip(weights, biases).map { (weightMatrix, biasVector) in
+            weightMatrix.sideConcatenating(biasVector)
+        }
+        
         self.activationFunctions = activationFunctions
     }
     
@@ -117,12 +137,13 @@ public class NeuralNetwork {
      * - Parameter activationFunctions: The activation functions for each layer in the network
      */
     public init(shape: Shape, activationFunctions: [ActivationFunction]) {
-        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        biases  = [Matrix](repeating: Matrix(), count: shape.count - 1)
+        
+        
+        
+        parameters = [Matrix](repeating: Matrix(), count: shape.count - 1)
         
         for i in 0..<(shape.count - 1) {
-            weights[i] = Matrix(rows: shape[i + 1], cols: shape[i])
-            biases[i] = Matrix(rows: shape[i + 1], cols: 1)
+            parameters[i] = Matrix(rows: shape[i + 1], cols: shape[i]).sideConcatenating(Matrix(rows: shape[i + 1], cols: 1))
         }
         
         self.activationFunctions = activationFunctions
@@ -137,28 +158,16 @@ public class NeuralNetwork {
      * - Parameter weightRange: A constraint for possible values that can be generated as random weights for this network
      * - Parameter biasRange: A constraint for possible values that can be generated as random biases for this network
      */
-    public init(randomWithShape shape: Shape, withBiases shouldIncludeBiases: Bool = true, activationFunctions: [ActivationFunction], weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
-        
-        weights = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        biases = [Matrix](repeating: Matrix(), count: shape.count - 1)
-        
-        
-        for i in 0..<weights.count {
-            weights[i] = Matrix.random(rows: shape[i + 1], cols: shape[i], range: weightRange)
-        }
-        
-        if shouldIncludeBiases {
-            for i in 0..<biases.count {
-                biases[i] = Matrix.random(rows: shape[i + 1], cols: 1, range: biasRange)
-            }
-        } else {
-            for i in 0..<biases.count {
-                biases[i] = Matrix(rows: shape[i + 1], cols: 1)
+    public convenience init(randomWithShape shape: Shape, activationFunctions: [ActivationFunction], weightRange: ClosedRange<Double> = -5...5, biasRange: ClosedRange<Double> = -5...5) {
+        self.init(shape: shape, activationFunctions: activationFunctions)
+        for p in 0..<parameters.count {
+            for r in 0..<weights[p].rowCount {
+                biases[p][r] = Double.random(in: biasRange)
+                for c in 0..<weights[p].colCount {
+                    weights[p][r, c] = Double.random(in: weightRange)
+                }
             }
         }
-        
-        
-        self.activationFunctions = activationFunctions
     }
     
     /**
@@ -166,11 +175,11 @@ public class NeuralNetwork {
      *
      * - Parameter buffer: The buffer of data to decode
      */
-    init(buffer: UnsafeRawBufferPointer) {
+    convenience init(buffer: UnsafeRawBufferPointer) {
         var readAddress = buffer.baseAddress!
         let layerCount = NeuralNetwork.readInteger(from: &readAddress)
         
-        self.activationFunctions = [ActivationFunction](repeating: .identity, count: layerCount - 1)
+        var activationFunctions = [ActivationFunction](repeating: .identity, count: layerCount - 1)
         
         for i in 0..<activationFunctions.count {
             activationFunctions[i] = ActivationFunction(
@@ -180,8 +189,8 @@ public class NeuralNetwork {
             )
         }
         
-        self.weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
-        self.biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        var weights = [Matrix](repeating: Matrix(), count: layerCount - 1)
+        var biases  = [Matrix](repeating: Matrix(), count: layerCount - 1)
         
         for i in 0..<weights.count {
             weights[i] = Matrix.unsafeRead(from: &readAddress)
@@ -191,6 +200,8 @@ public class NeuralNetwork {
             biases[i] = Matrix.unsafeRead(from: &readAddress)
         }
         
+        self.init(weights: weights, biases: biases, activationFunctions: activationFunctions)
+        
     }
     
     /**
@@ -199,8 +210,7 @@ public class NeuralNetwork {
      * - Parameter other: Another neural network to copy
      */
     public init(_ other: NeuralNetwork) {
-        self.weights = other.weights
-        self.biases = other.biases
+        self.parameters = other.parameters
         self.activationFunctions = other.activationFunctions
     }
     
